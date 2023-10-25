@@ -1,0 +1,4 @@
+Books missing from Bible_Chapters folder:
+
+All of them are in there! (I just needed to copy and paste in Genesis because it wasn't present in the original list of text files)
+The order shown in the folder is different from the order shown on the USCCB site, however. (See https://bible.usccb.org/bible )
