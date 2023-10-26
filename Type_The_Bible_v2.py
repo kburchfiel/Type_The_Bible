@@ -63,6 +63,9 @@ decimal_component, random_seed
 rng = np.random.default_rng(random_seed) # Based on
 # https://numpy.org/doc/stable/reference/random/index.html?highlight=random#module-numpy.random
 
+# %%
+df_Bible
+
 # %% [markdown]
 # [This fantastic answer](https://stackoverflow.com/a/23294659/13097194) by 'Kevin' at Stack Overflow proved helpful in implementing user validation code within this program. 
 
@@ -92,12 +95,22 @@ verse or 0 for a randomly selected verse.")
         # to include only untyped verses.
         elif response == -2:
             verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order_Within_Bible'].copy())
+            if len(verses_not_yet_typed) == 0:
+                print("Congratulations! You have typed all verses from \
+the Bible, so there are no new verses to type! Try selecting another option \
+instead.")
+                continue
             print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
             return rng.choice(verses_not_yet_typed) # Chooses one of these
             # untyped verses at random
         elif response == -3:
             verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order_Within_Bible'].copy())
+            if len(verses_not_yet_typed) == 0:
+                print("Congratulations! You have typed all verses from \
+the Bible, so there are no new verses to type! Try selecting another option \
+instead.")
+                continue
             print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
             verses_not_yet_typed.sort() # Probably not necessary, as df_Bible
@@ -119,7 +132,7 @@ been typed.")
 
 
 # %%
-df_Bible
+len(list(df_Bible.query("Typed == 7")['Verse_Order_Within_Bible'].copy()))
 
 # %%
 def run_typing_test(verse_number, results_table):
@@ -146,17 +159,32 @@ within the Bible .csv file).\n")
         print(f"Here is the verse:\n{verse}\n") 
         print("You can also exit this test by entering 'exit'.\nPress any key \
 to begin typing!'")
-        # time.sleep(3) I realized that players could actually begin typing
+        # time.sleep(3) # I realized that players could actually begin typing
         # during this sleep period, thus allowing them to complete the test
         # faster than intended. Therefore, I'm now having the test start
-        # after the player hits Enter.
+        # after the player hits a character of his/her choice. getch()
+        # accomplishes this task well.
+        # A simpler approach would be to add in an additional input block
+        # and have the player begin after he/she presses Enter, but that would
+        # cause the player's right hand to leave the default home row position,
+        # which could end up slowing him/her down. getch() allows any character
+        # to be pressed (such as the space bar) and thus avoids this issue.
+
         start_character = getch() # See https://github.com/joeyespo/py-getch
         print("Start!")
         local_start_time = datetime.now().isoformat()
         utc_start_time = datetime.now(timezone.utc).isoformat()
         typing_start_time = time.time()
         verse_response = input() 
-        # The following code will execute once the player finishes typing.
+        # The following code will execute once the player finishes typing and
+        # hits Enter. (Having the program evaluate the player's entry only after
+        # 'Enter' is pressed isn't the best option, as the time required to
+        # hit Enter will reduce the player's reported WPM. In the future,
+        # I might revise this code so that the text can get evaluated
+        # immediately when the player has typed all characters of the text.
+        # (Counting the characters as the player types would be one way
+        # to implement this revision.)
+
         typing_end_time = time.time()
         typing_time = typing_end_time - typing_start_time
         if verse_response == verse:
@@ -225,7 +253,7 @@ to begin typing!'")
 
 
 # %%
-run_typing_test(1, results_table=df_results)
+# run_typing_test(1, results_table=df_results)
 
 # %%
 def select_subsequent_verse(previous_verse_number):
@@ -259,6 +287,11 @@ there's no next verse to type! Please enter an option other than 1.\n")
                 # untyped verse).
                 verses_not_yet_typed = list(df_Bible.query(
                     "Typed == 0")['Verse_Order_Within_Bible'].copy())
+                if len(verses_not_yet_typed) == 0:
+                    print("Congratulations! You have typed all verses from \
+the Bible, so there are no new verses to type! Try selecting another option \
+instead.")
+                    continue
                 print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
                 verses_not_yet_typed.sort() 
@@ -325,7 +358,7 @@ df_results.to_csv('results.csv')
 df_Bible.to_csv('WEB_Catholic_Version_for_game_updated.csv', index = False)
 
 # %%
-print("Press any key to exit.") # Allows the console to stay open when the
+print("Enter any key to exit.") # Allows the console to stay open when the
 # .py version of the program is run
 input()
 
