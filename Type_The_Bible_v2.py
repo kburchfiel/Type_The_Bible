@@ -19,6 +19,8 @@
 # %%
 import pandas as pd
 import time
+from getch import getch # Installed this library using pip install py-getch, not
+# pip install getch. See https://github.com/joeyespo/py-getch
 import numpy as np
 from datetime import datetime, date, timezone # Based on 
 # https://docs.python.org/3/library/datetime.html
@@ -140,10 +142,15 @@ def run_typing_test(verse_number, results_table):
     while complete_flag == 0:
         print(f"Your verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_number_within_Bible} \
-within the WEB Bible spreadsheet.\n")
+within the Bible .csv file).\n")
         print(f"Here is the verse:\n{verse}\n") 
-        print("You can also exit this test by entering 'exit.'\nThe clock will start in 3 seconds!")
-        time.sleep(3)
+        print("You can also exit this test by entering 'exit'.\nPress any key \
+to begin typing!'")
+        # time.sleep(3) I realized that players could actually begin typing
+        # during this sleep period, thus allowing them to complete the test
+        # faster than intended. Therefore, I'm now having the test start
+        # after the player hits Enter.
+        start_character = getch() # See https://github.com/joeyespo/py-getch
         print("Start!")
         local_start_time = datetime.now().isoformat()
         utc_start_time = datetime.now(timezone.utc).isoformat()
@@ -216,6 +223,9 @@ within the WEB Bible spreadsheet.\n")
 
     return results_table
 
+
+# %%
+run_typing_test(1, results_table=df_results)
 
 # %%
 def select_subsequent_verse(previous_verse_number):
