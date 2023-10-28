@@ -11,19 +11,41 @@
 # ## More documentation to come!
 
 # %% [markdown]
-# Next steps:
+# Next steps: (Not necessarily in order of importance)
 # 
-# 1. Prevent the script from crashing if someone has typed all of the Bible verses (which would make verses_not_yet_typed a blank list)
+# 1. Create a blank results.csv file that the user can then use to overwrite your results.csv file.
 # 2. Add in additional visualizations to show players' progress in (1) typing the Bible and (2) increasing their typing speed
+# 3. Add in code that will allow users to press enter to start a typing test if the code is running via a notebook (as getch() isn't working within the Jupyter Notebook)
 
 # %%
 import pandas as pd
 import time
+import plotly.express as px
 from getch import getch # Installed this library using pip install py-getch, not
 # pip install getch. See https://github.com/joeyespo/py-getch
 import numpy as np
 from datetime import datetime, date, timezone # Based on 
 # https://docs.python.org/3/library/datetime.html
+
+# %% [markdown]
+# Checking whether the program is currently running on a Jupyter notebook:
+# 
+# (The program normally uses getch() to begin typing tests; however, I wasn't able to enter input after getch() got called within a Jupyter notebook and thus couldn't begin a typing test in that situation. Therefore, the program will use input() instead of getch() to start tests when running within a notebook.)
+
+# %%
+# The following method of determining whether the code is running
+# within a Jupyter notebook is based on Gustavo Bezerra's response
+# at https://stackoverflow.com/a/39662359/13097194 . I found that
+# just calling get_ipython() was sufficient, at least on Windows and within
+# Visual Studio Code; his answer is more complex.
+
+try: 
+    get_ipython()
+    run_on_notebook = True
+except:
+    run_on_notebook = False
+
+print(run_on_notebook)
 
 # %%
 df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv')
@@ -132,9 +154,6 @@ been typed.")
 
 
 # %%
-len(list(df_Bible.query("Typed == 7")['Verse_Order_Within_Bible'].copy()))
-
-# %%
 def run_typing_test(verse_number, results_table):
     '''This function calculates how quickly the user types the characters
     passed to the Bible verse represented by verse_number, then saves those 
@@ -151,14 +170,22 @@ def run_typing_test(verse_number, results_table):
     verse_number_within_Bible = df_Bible.iloc[
         verse_number-1]['Verse_Order_Within_Bible']
     
-    complete_flag = 0
-    while complete_flag == 0:
-        print(f"Your verse to type is {book} \
+    # I moved these introductory comments out of the following while loop
+    # in order to simplify the dialogue presented to users during retest
+    # attempts.
+    print("Welcome to the typing test! Note that you can exit a test in \
+progress by entering 'exit.'")
+    print(f"Your verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_number_within_Bible} \
 within the Bible .csv file).\n")
-        print(f"Here is the verse:\n{verse}\n") 
-        print("You can also exit this test by entering 'exit'.\nPress any key \
-to begin typing!'")
+    
+    complete_flag = 0
+    while complete_flag == 0:
+        print(f"Here is the verse:\n\n{verse}\n\n") 
+
+        if run_on_notebook == False: # In this case, we can use getch()
+            # to begin the test.
+            print("Press any key to begin typing!'")
         # time.sleep(3) # I realized that players could actually begin typing
         # during this sleep period, thus allowing them to complete the test
         # faster than intended. Therefore, I'm now having the test start
@@ -170,7 +197,14 @@ to begin typing!'")
         # which could end up slowing him/her down. getch() allows any character
         # to be pressed (such as the space bar) and thus avoids this issue.
 
-        start_character = getch() # See https://github.com/joeyespo/py-getch
+            start_character = getch() # See https://github.com/joeyespo/py-getch
+        
+        else: # When running the program within a Jupyter notebook, I wasn't
+            # able to enter input after getch() was called, so I created
+            # an alternative start method below that simply uses input().
+            print("Press Enter to begin the test!")
+            input()
+
         print("Start!")
         local_start_time = datetime.now().isoformat()
         utc_start_time = datetime.now(timezone.utc).isoformat()
@@ -352,13 +386,115 @@ print(f"You have typed {characters_typed_sum} characters so far, which represent
 df_results
 
 # %%
-df_results.to_csv('results.csv')
+print("Saving results:")
+
+# %%
+def attempt_save(df, filename):
+    '''This function attempts to save the DataFrame passed to df to the file
+    specified by filename. It allows players to retry the save operation
+    if it wasn't initially successful (e.g. because the file was open at 
+    the time), thus preventing them from losing their latest progress.'''
+    while True:
+        try: 
+            df_results.to_csv('results.csv')
+            return
+        except:
+            print("File could not be saved, likely because it is currently open. \
+    Try closing the file and trying again. Press Enter to retry.")
+            input()
+
+# %%
+attempt_save(df_results, 'results.csv')
+
+# %%
+attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv')
+
+# %%
+while True:
+    try: 
+        df_results.to_csv('results.csv')
+        break
+    except:
+        print("File could not be saved, likely because it is currently open. \
+Try closing the file and trying again. Press Enter to retry.")
+
 
 # %%
 df_Bible.to_csv('WEB_Catholic_Version_for_game_updated.csv', index = False)
 
+# %% [markdown]
+# # Visualizing the player's results and progress:
+# 
+# (More charts to come!)
+
 # %%
-print("Enter any key to exit.") # Allows the console to stay open when the
+print("Updating analyses:")
+
+# %%
+df_Bible['Count'] = 1
+
+# %% [markdown]
+# ### Creating a tree map within Plotly that visualizes the player's progress in typing the entire Bible:
+
+# %%
+# This code is based on https://plotly.com/python/treemaps/
+# It's pretty amazing that such a complex visualization can be created using
+# just one line of code. Thanks Plotly!
+fig_verses_typed = px.treemap(df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], values = 'Characters', color = 'Typed')
+# fig_verses_typed
+
+# %%
+fig_verses_typed.write_html('Analyses/verses_typed_tree_map.html')
+
+# %%
+# # A similar chart that doesn't use the Typed column for color coding:
+# (This chart, unlike fig_verses_typed above, won't change unless edits are 
+# made to the code itself, so it can be 
+# commented out after being run once.)
+# fig_Bible_verses.write_html('Bible_tree_map.html')
+# fig_Bible_verses = px.treemap(df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], values = 'Characters')
+# fig_Bible_verses
+
+# %%
+df_Bible
+
+# %%
+# This variant of the treemap shows each verse as its own box, which results in 
+# a very busy graph that takes a while to load within a web browser
+# (if it even loads at all).
+# fig_verses_typed_verses_only = px.treemap(df_Bible, path = ['Verse_Order_Within_Bible'], values = 'Characters', color = 'Typed')
+# fig_verses_typed_verses_only.write_html('Analyses/verses_typed_tree_map_verses_only.html')
+
+# fig_verses_typed_verses_only.write_image('Analyses/verses_typed_tree_map_verses_only.png', width = 3840, height = 2160) # This line took over 8 minutes to execute on my laptop.
+
+# %% [markdown]
+# ### Creating a bar chart that shows the proportion of each book that has been typed so far:
+
+# %%
+df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Name'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
+df_characters_typed_by_book['proportion_typed'] = df_characters_typed_by_book['Characters_Typed'] / df_characters_typed_by_book['Characters']
+df_characters_typed_by_book
+
+# %%
+fig_proportion_of_each_book_typed = px.bar(df_characters_typed_by_book, x = 'Book_Name', y = 'proportion_typed')
+fig_proportion_of_each_book_typed.update_yaxes(range = [0, 1]) # Setting
+# the maximum y value as 1 better demonstrates how much of the Bible
+# has been typed so far
+fig_proportion_of_each_book_typed.write_html('Analyses/proportion_of_each_book_typed.html')
+fig_proportion_of_each_book_typed
+
+# %% [markdown]
+# ### Creating a chart that compares the number of characters in each book with the number that have been typed:
+# 
+# This provides a clearer view of the player's progress in typing the Bible, as each bar's height is based on the number of characters. (In contrast, bars for fully typed small books will be just as high in fig_proportion_of_each_book_typed as those for fully typed large books.)
+
+# %%
+fig_characters_typed_in_each_book = px.bar(df_characters_typed_by_book, x = 'Book_Name', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
+fig_characters_typed_in_each_book.write_html('Analyses/verses_typed_by_book.html')
+fig_characters_typed_in_each_book
+
+# %%
+print("Finished updating analyses. Enter any key to exit.") # Allows the console to stay open when the
 # .py version of the program is run
 input()
 
