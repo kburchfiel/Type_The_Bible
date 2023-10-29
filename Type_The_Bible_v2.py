@@ -14,6 +14,7 @@
 # Next steps: (Not necessarily in order of importance)
 # 
 # 1. Create a blank results.csv file that the user can then use to overwrite your results.csv file.
+# 2. Create a variant of fig_characters_typed_in_each_book_and_chapter that shows individual verses in each bar and not just chapters.
 # 2. Add in additional visualizations to show players' progress in (1) typing the Bible and (2) increasing their typing speed
 # 3. Add in code that will allow users to press enter to start a typing test if the code is running via a notebook (as getch() isn't working within the Jupyter Notebook)
 
@@ -45,7 +46,7 @@ try:
 except:
     run_on_notebook = False
 
-print(run_on_notebook)
+# print(run_on_notebook)
 
 # %%
 df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv')
@@ -94,7 +95,7 @@ df_Bible
 # %%
 def select_verse():
     print("Select a verse to type! Enter 0 to receive a random verse\n\
-or enter a verse number (see 'Verse_Order_Within_Bible column of\n\
+or enter a verse number (see 'Verse_Order column of\n\
 the WEB_Catholic_Version.csv spreadsheet for a list of numbers to enter\n\
 to select a specific verse.\n\
 You can also enter -2 to receive a random verse that you haven't yet typed\n\
@@ -116,7 +117,7 @@ verse or 0 for a randomly selected verse.")
         # verses haven't yet been typed. We can do so by filtering df_Bible
         # to include only untyped verses.
         elif response == -2:
-            verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order_Within_Bible'].copy())
+            verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order'].copy())
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -127,7 +128,7 @@ been typed.")
             return rng.choice(verses_not_yet_typed) # Chooses one of these
             # untyped verses at random
         elif response == -3:
-            verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order_Within_Bible'].copy())
+            verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order'].copy())
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -168,7 +169,7 @@ def run_typing_test(verse_number, results_table):
     chapter = df_Bible.iloc[verse_number-1]['Chapter_Name']
     verse_number_within_chapter = df_Bible.iloc[verse_number-1]['Verse_#']
     verse_number_within_Bible = df_Bible.iloc[
-        verse_number-1]['Verse_Order_Within_Bible']
+        verse_number-1]['Verse_Order']
     
     # I moved these introductory comments out of the following while loop
     # in order to simplify the dialogue presented to users during retest
@@ -320,7 +321,7 @@ there's no next verse to type! Please enter an option other than 1.\n")
                 # the first verse within that list (i.e. the next 
                 # untyped verse).
                 verses_not_yet_typed = list(df_Bible.query(
-                    "Typed == 0")['Verse_Order_Within_Bible'].copy())
+                    "Typed == 0")['Verse_Order'].copy())
                 if len(verses_not_yet_typed) == 0:
                     print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -389,38 +390,28 @@ df_results
 print("Saving results:")
 
 # %%
-def attempt_save(df, filename):
+def attempt_save(df, filename, index):
     '''This function attempts to save the DataFrame passed to df to the file
     specified by filename. It allows players to retry the save operation
     if it wasn't initially successful (e.g. because the file was open at 
-    the time), thus preventing them from losing their latest progress.'''
+    the time), thus preventing them from losing their latest progress.
+    The index parameter determines whether or not the DataFrame's index
+    will be included in the .csv export. Set to True for results.csv
+    but False for Web_Catholic_Version_for_game_updated.csv.'''
     while True:
         try: 
-            df_results.to_csv('results.csv')
+            df.to_csv(filename, index = index)
             return
         except:
             print("File could not be saved, likely because it is currently open. \
-    Try closing the file and trying again. Press Enter to retry.")
+Try closing the file and trying again. Press Enter to retry.")
             input()
 
 # %%
-attempt_save(df_results, 'results.csv')
+attempt_save(df_results, 'results.csv', index = True)
 
 # %%
-attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv')
-
-# %%
-while True:
-    try: 
-        df_results.to_csv('results.csv')
-        break
-    except:
-        print("File could not be saved, likely because it is currently open. \
-Try closing the file and trying again. Press Enter to retry.")
-
-
-# %%
-df_Bible.to_csv('WEB_Catholic_Version_for_game_updated.csv', index = False)
+attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = False)
 
 # %% [markdown]
 # # Visualizing the player's results and progress:
@@ -428,6 +419,8 @@ df_Bible.to_csv('WEB_Catholic_Version_for_game_updated.csv', index = False)
 # (More charts to come!)
 
 # %%
+analysis_start_time = time.time() # Allows us to determine how long the
+# analyses took
 print("Updating analyses:")
 
 # %%
@@ -440,11 +433,12 @@ df_Bible['Count'] = 1
 # This code is based on https://plotly.com/python/treemaps/
 # It's pretty amazing that such a complex visualization can be created using
 # just one line of code. Thanks Plotly!
-fig_verses_typed = px.treemap(df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], values = 'Characters', color = 'Typed')
+fig_tree_map_books_chapters_verses = px.treemap(
+    df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], values = 'Characters', color = 'Typed')
 # fig_verses_typed
 
 # %%
-fig_verses_typed.write_html('Analyses/verses_typed_tree_map.html')
+fig_tree_map_books_chapters_verses.write_html('Analyses/tree_map_books_chapters_verses.html')
 
 # %%
 # # A similar chart that doesn't use the Typed column for color coding:
@@ -459,19 +453,33 @@ fig_verses_typed.write_html('Analyses/verses_typed_tree_map.html')
 df_Bible
 
 # %%
-# This variant of the treemap shows each verse as its own box, which results in 
-# a very busy graph that takes a while to load within a web browser
-# (if it even loads at all).
-# fig_verses_typed_verses_only = px.treemap(df_Bible, path = ['Verse_Order_Within_Bible'], values = 'Characters', color = 'Typed')
-# fig_verses_typed_verses_only.write_html('Analyses/verses_typed_tree_map_verses_only.html')
+# This variant of the treemap shows chapters and verses rather than books,
+# chapters, and verses.
+# fig_tree_map_chapters_verses = px.treemap(df_Bible, path = ['Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed')
+# fig_tree_map_chapters_verses.write_html('Analyses/tree_map_chapters_verses.html')
 
-# fig_verses_typed_verses_only.write_image('Analyses/verses_typed_tree_map_verses_only.png', width = 3840, height = 2160) # This line took over 8 minutes to execute on my laptop.
+# fig_tree_map_chapters_verses.write_image('Analyses/tree_map_chapters_verses.png', width = 3840, height = 2160)
+
+# %%
+# # This variant of the treemap shows each verse as its own box, which results in 
+# # a very busy graph that takes a while to load within a web browser
+# # (if it even loads at all).
+
+# fig_tree_map_verses = px.treemap(df_Bible, path = ['Verse_Order'], values = 'Characters', color = 'Typed')
+# fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
+
+# fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 3840, height = 2160) # This line took over 8 minutes to run on my laptop.
+# fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', width = 7680, height = 4320) 
+# fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', width = 15360, height = 8640) 
+# # fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, height = 17280) # Didn't end up rendering successfully, probably because the dimensions were absurdly large!
 
 # %% [markdown]
 # ### Creating a bar chart that shows the proportion of each book that has been typed so far:
 
 # %%
-df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Name'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
+df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 'Book_Name'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
+# Adding 'Book_Order' as the first index value allows for the pivot tables
+# and bars to be ordered by that value.
 df_characters_typed_by_book['proportion_typed'] = df_characters_typed_by_book['Characters_Typed'] / df_characters_typed_by_book['Characters']
 df_characters_typed_by_book
 
@@ -490,12 +498,48 @@ fig_proportion_of_each_book_typed
 
 # %%
 fig_characters_typed_in_each_book = px.bar(df_characters_typed_by_book, x = 'Book_Name', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
-fig_characters_typed_in_each_book.write_html('Analyses/verses_typed_by_book.html')
+fig_characters_typed_in_each_book.write_html('Analyses/characters_typed_by_book.html')
 fig_characters_typed_in_each_book
 
+# %% [markdown]
+# ## Creating charts that show both book- and chapter-level data:
+
 # %%
-print("Finished updating analyses. Enter any key to exit.") # Allows the console to stay open when the
+df_characters_typed_by_book_and_chapter = df_Bible.pivot_table(index = ['Book_Order', 'Book_Name', 'Book_and_Chapter'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
+df_characters_typed_by_book_and_chapter['proportion_typed'] = df_characters_typed_by_book_and_chapter['Characters_Typed'] / df_characters_typed_by_book_and_chapter['Characters']
+df_characters_typed_by_book_and_chapter
+
+# %% [markdown]
+# The following chart shows both books (as bars) and chapters (as sections of these bars). These sections are also color coded by the proportion of each chapter that has been typed.
+
+# %%
+fig_characters_typed_in_each_book_and_chapter = px.bar(df_characters_typed_by_book_and_chapter, x = 'Book_Name', y = ['Characters'], color = 'proportion_typed')
+fig_characters_typed_in_each_book_and_chapter.write_html('Analyses/characters_typed_by_book_and_chapter.html')
+fig_characters_typed_in_each_book_and_chapter
+
+# %% [markdown]
+# ## Creating similar charts at the chapter level:
+# 
+# These proved difficult to interpret due to the narrowness of the bars, so I'm commenting this code out for now.
+
+# %%
+# fig_proportion_of_each_chapter_typed = px.bar(df_characters_typed_by_chapter, x = 'Book_and_Chapter', y = 'proportion_typed')
+# fig_proportion_of_each_chapter_typed.update_yaxes(range = [0, 1]) # Setting
+# # the maximum y value as 1 better demonstrates how much of the Bible
+# # has been typed so far
+# fig_proportion_of_each_chapter_typed.write_html('Analyses/proportion_of_each_chapter_typed.html')
+# fig_proportion_of_each_chapter_typed
+
+# fig_characters_typed_in_each_chapter = px.bar(df_characters_typed_by_chapter, x = 'Book_and_Chapter', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
+# fig_characters_typed_in_each_chapter.write_html('Analyses/characters_typed_by_chapter.html')
+# fig_characters_typed_in_each_chapter
+
+# %%
+analysis_end_time = time.time()
+analysis_time = analysis_end_time - analysis_start_time
+print(f"Finished updating analyses in {round(analysis_time, 3)} seconds. Enter any key to exit.") # Allows the console to stay open when the
 # .py version of the program is run
+
 input()
 
 
