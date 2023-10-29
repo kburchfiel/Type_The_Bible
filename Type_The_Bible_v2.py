@@ -182,11 +182,11 @@ within the Bible .csv file).\n")
     
     complete_flag = 0
     while complete_flag == 0:
-        print(f"Here is the verse:\n\n{verse}\n\n") 
+        print(f"Here is the verse:\n\n{verse}\n") 
 
         if run_on_notebook == False: # In this case, we can use getch()
             # to begin the test.
-            print("Press any key to begin typing!'")
+            print("Press any key to begin typing!")
         # time.sleep(3) # I realized that players could actually begin typing
         # during this sleep period, thus allowing them to complete the test
         # faster than intended. Therefore, I'm now having the test start
