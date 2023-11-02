@@ -1,11 +1,11 @@
 # %% [markdown]
-# # Type The Bible
+# # Type Through The Bible
 # 
 # By Kenneth Burchfiel
 # 
 # Code is released under the MIT license; Bible verses are from the Web English Bible (Catholic Edition)* and are in the public domain.
 # 
-# * Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files.
+# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files.
 
 # %% [markdown]
 # ## More documentation to come!
@@ -13,10 +13,9 @@
 # %% [markdown]
 # Next steps: (Not necessarily in order of importance)
 # 
-# 1. Create a blank results.csv file that the user can then use to overwrite your results.csv file.
-# 2. Create a variant of fig_characters_typed_in_each_book_and_chapter that shows individual verses in each bar and not just chapters.
-# 2. Add in additional visualizations to show players' progress in (1) typing the Bible and (2) increasing their typing speed
-# 3. Add in code that will allow users to press enter to start a typing test if the code is running via a notebook (as getch() isn't working within the Jupyter Notebook)
+# * See if there's a way to alert the user (perhaps via a sound?) when a character is typed incorrectly.
+# * Improve chart formatting (e.g. add titles, legend names, etc.)
+# * Add in more documentation
 
 # %%
 import pandas as pd
@@ -27,6 +26,9 @@ from getch import getch # Installed this library using pip install py-getch, not
 import numpy as np
 from datetime import datetime, date, timezone # Based on 
 # https://docs.python.org/3/library/datetime.html
+
+# %%
+extra_analyses = False
 
 # %% [markdown]
 # Checking whether the program is currently running on a Jupyter notebook:
@@ -176,17 +178,20 @@ def run_typing_test(verse_number, results_table):
     # attempts.
     print("Welcome to the typing test! Note that you can exit a test in \
 progress by entering 'exit.'")
-    print(f"Your verse to type is {book} \
+    print(f"\nYour verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_number_within_Bible} \
 within the Bible .csv file).\n")
+    if run_on_notebook == False:
+        print("Press any key to begin typing!")
+    else:
+        print("Press Enter to begin the test!")
     
     complete_flag = 0
     while complete_flag == 0:
-        print(f"Here is the verse:\n\n{verse}\n") 
+        print(f"Here is the verse:\n\n{verse}") 
 
         if run_on_notebook == False: # In this case, we can use getch()
             # to begin the test.
-            print("Press any key to begin typing!")
         # time.sleep(3) # I realized that players could actually begin typing
         # during this sleep period, thus allowing them to complete the test
         # faster than intended. Therefore, I'm now having the test start
@@ -203,7 +208,6 @@ within the Bible .csv file).\n")
         else: # When running the program within a Jupyter notebook, I wasn't
             # able to enter input after getch() was called, so I created
             # an alternative start method below that simply uses input().
-            print("Press Enter to begin the test!")
             input()
 
         print("Start!")
@@ -231,8 +235,21 @@ within the Bible .csv file).\n")
             return results_table # Exits the function without saving the 
             # current test to results_table or df_Bible
         else:
-            print("Sorry, that wasn't the correct input. Try again!")   
-
+            print("Sorry, that wasn't the correct input.")   
+            # Identifying incorrectly typed words:
+            verse_words = verse.split(' ')
+            verse_response_words = verse_response.split(' ')[0:len(verse_words)]
+            # I added in the [0:len(verse_words)] filter so that the following
+            # for loop would not attempt to access more words that were 
+            # present in the original verse (which would cause the game
+            # to crash with an IndexError).
+            for i in range(len(verse_response_words)):
+                if verse_response_words[i] != verse_words[i]:
+                    print(f"Word number {i} ('{verse_words[i]}') was typed '{verse_response_words[i]}'.")
+                    # If the response has more or fewer words than the original
+                    # verse, some correctly typed words might appear within
+                    # this list also.
+            print("Try again!")
 
     # Calculating typing statistics and storing them within a single-row
     # DataFrame:
@@ -342,12 +359,12 @@ been typed.")
 
 # %%
 def run_game(results_table):
-    '''This function runs Type the Bible by calling various other functions.
+    '''This function runs Type Through the Bible by calling various other functions.
     It allows users to select
     verses to type, then runs typing tests and stores the results in
     the DataFrame passed to results_table.'''
     
-    print("Welcome to Type the Bible!")
+    print("Welcome to Type Through the Bible!")
     verse_number = select_verse()
     
     while True: # Allows the game to continue until the user exits
@@ -383,7 +400,28 @@ print(f"You have typed {characters_typed_sum} characters so far, which represent
 
 
 
+# %% [markdown]
+# # Adding in additional statistics to df_results:
+# 
+# (The following cell was derived from [this script](https://github.com/kburchfiel/typeracer_data_analyzer/blob/master/typeracer_data_analyzer_v2.ipynb) that I wrote.)
+# 
+# These statistics will get recreated whenever the script is run; this approach allows for the results to be revised as needed (e.g. if certain rows are removed from the dataset).
+
 # %%
+df_results['Last 10 Avg'] = df_results['WPM'].rolling(10).mean()
+df_results['Last 100 Avg'] = df_results['WPM'].rolling(100).mean()
+df_results['Last 1000 Avg'] = df_results['WPM'].rolling(1000).mean()
+df_results['Local_Year'] = pd.to_datetime(df_results['Local_Start_Time']).dt.year
+df_results['Local_Month'] = pd.to_datetime(df_results['Local_Start_Time']).dt.month
+df_results['Local_Hour'] = pd.to_datetime(df_results['Local_Start_Time']).dt.hour
+df_results['Count'] = 1 # Useful for pivot tables that analyze test counts
+# by book, month, etc.
+
+# The following line uses a list comprehension to generate a cumulative average
+# of all WPM scores up until the current race. .iloc searches from 0 to i+1 for
+# each row so that that row is included in the calculation.
+df_results['cumulative_avg'] = [round(np.mean(df_results.iloc[0:i+1]['WPM']),
+3) for i in range(len(df_results))]
 df_results
 
 # %%
@@ -414,9 +452,7 @@ attempt_save(df_results, 'results.csv', index = True)
 attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = False)
 
 # %% [markdown]
-# # Visualizing the player's results and progress:
-# 
-# (More charts to come!)
+# # Visualizing the player's progress in typing the entire Bible:
 
 # %%
 analysis_start_time = time.time() # Allows us to determine how long the
@@ -455,23 +491,23 @@ df_Bible
 # %%
 # This variant of the treemap shows chapters and verses rather than books,
 # chapters, and verses.
-# fig_tree_map_chapters_verses = px.treemap(df_Bible, path = ['Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed')
-# fig_tree_map_chapters_verses.write_html('Analyses/tree_map_chapters_verses.html')
+if (run_on_notebook == True) & (extra_analyses == True):
+    fig_tree_map_chapters_verses = px.treemap(df_Bible, path = ['Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed')
+    fig_tree_map_chapters_verses.write_html('Analyses/tree_map_chapters_verses.html')
 
-# fig_tree_map_chapters_verses.write_image('Analyses/tree_map_chapters_verses.png', width = 3840, height = 2160)
+    fig_tree_map_chapters_verses.write_image('Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
 
 # %%
-# # This variant of the treemap shows each verse as its own box, which results in 
-# # a very busy graph that takes a while to load within a web browser
-# # (if it even loads at all).
+# This variant of the treemap shows each verse as its own box, which results in 
+# a very busy graph that takes a while to load within a web browser
+# (if it even loads at all).
 
-# fig_tree_map_verses = px.treemap(df_Bible, path = ['Verse_Order'], values = 'Characters', color = 'Typed')
-# fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
-
-# fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 3840, height = 2160) # This line took over 8 minutes to run on my laptop.
-# fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', width = 7680, height = 4320) 
-# fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', width = 15360, height = 8640) 
-# # fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, height = 17280) # Didn't end up rendering successfully, probably because the dimensions were absurdly large!
+if (run_on_notebook == True) & (extra_analyses == True):
+    fig_tree_map_verses = px.treemap(df_Bible, path = ['Verse_Order'], values = 'Characters', color = 'Typed')
+    fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
+    fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', width = 7680, height = 4320) 
+    fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', width = 15360, height = 8640) 
+# fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, height = 17280) # Didn't end up rendering successfully, probably because the dimensions were absurdly large!
 
 # %% [markdown]
 # ### Creating a bar chart that shows the proportion of each book that has been typed so far:
@@ -481,6 +517,7 @@ df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 'Book_
 # Adding 'Book_Order' as the first index value allows for the pivot tables
 # and bars to be ordered by that value.
 df_characters_typed_by_book['proportion_typed'] = df_characters_typed_by_book['Characters_Typed'] / df_characters_typed_by_book['Characters']
+df_characters_typed_by_book.to_csv('Analyses/characters_typed_by_book.csv')
 df_characters_typed_by_book
 
 # %%
@@ -507,6 +544,7 @@ fig_characters_typed_in_each_book
 # %%
 df_characters_typed_by_book_and_chapter = df_Bible.pivot_table(index = ['Book_Order', 'Book_Name', 'Book_and_Chapter'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
 df_characters_typed_by_book_and_chapter['proportion_typed'] = df_characters_typed_by_book_and_chapter['Characters_Typed'] / df_characters_typed_by_book_and_chapter['Characters']
+df_characters_typed_by_book_and_chapter.to_csv('Analyses/characters_typed_by_book_and_chapter.csv')
 df_characters_typed_by_book_and_chapter
 
 # %% [markdown]
@@ -533,6 +571,112 @@ fig_characters_typed_in_each_book_and_chapter
 # fig_characters_typed_in_each_chapter = px.bar(df_characters_typed_by_chapter, x = 'Book_and_Chapter', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
 # fig_characters_typed_in_each_chapter.write_html('Analyses/characters_typed_by_chapter.html')
 # fig_characters_typed_in_each_chapter
+
+# %% [markdown]
+# # Analyzing WPM data:
+# 
+# (Some of this section's code derives from my work in [this script](https://github.com/kburchfiel/typeracer_data_analyzer/blob/master/typeracer_data_analyzer_v2.ipynb).)
+# 
+
+# %% [markdown]
+# Top 20 WPM results:
+
+# %%
+df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(100).copy()
+df_top_100_wpm.insert(0, 'Rank', df_top_100_wpm['WPM'].rank(ascending = False, method = 'min').astype('int'))
+# method = 'min' assigns the lowest rank to any rows that happen to have
+# the same WPM. See 
+# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rank.html
+df_top_100_wpm.to_csv('Analyses/top_100_wpm.csv')
+df_top_100_wpm
+
+# %%
+fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM')
+fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
+fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_100_wpm
+
+# %% [markdown]
+# Top 20 'Last 10 Average' values:
+
+# %%
+df_top_20_last_10_avg_results = df_results.sort_values('Last 10 Avg', ascending = False).head(20).copy()
+df_top_20_last_10_avg_results
+
+# %%
+fig_df_results_by_test_number = px.line(df_results, x = df_results.index, y = ['WPM', 'Last 10 Avg', 'Last 100 Avg', 'Last 1000 Avg', 'cumulative_avg'])
+fig_df_results_by_test_number.write_html('Analyses/results_by_test_number.html')
+fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_df_results_by_test_number
+
+# %% [markdown]
+# ## Evaluating average results by month:
+
+# %%
+df_results_by_month = df_results.pivot_table(index = ['Local_Year', 'Local_Month'], values = ['Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_month['Year/Month'] = df_results_by_month['Local_Year'].astype('str') + ' (' + df_results_by_month['Local_Month'].astype('str') + ')'
+# Putting the month in parentheses prevents Plotly 
+# from automatically interpreting the results as datetime values, which would
+# affect the final output of the chart. There is likely a more elegant
+# way to disable the automatic datetime formatting.
+df_results_by_month.to_csv('Analyses/results_by_month.csv')
+df_results_by_month
+
+# %%
+fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', y = 'WPM', color = 'Count')
+fig_results_by_month.write_html('Analyses/results_by_month.html')
+fig_results_by_month.write_image('Analyses/results_by_month.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_results_by_month
+
+# %% [markdown]
+# ## Evaluating average results by hour of day:
+
+# %%
+df_results_by_hour = df_results.pivot_table(index = ['Local_Hour'], values = ['Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_hour
+
+# %%
+fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Hour', y = 'WPM', color = 'Count')
+fig_results_by_hour.write_html('Analyses/results_by_hour.html')
+fig_results_by_hour.write_image('Analyses/results_by_hour.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_results_by_hour
+
+# %% [markdown]
+# # Comparing mean WPMs by Bible books:
+
+# %%
+df_wpm_by_book = df_results.pivot_table(index = 'Book', values = 'WPM', aggfunc = ['count', 'mean'], margins = True, margins_name = 'Total').reset_index()
+df_wpm_by_book.columns = 'Book', 'Tests', 'Mean WPM'
+df_wpm_by_book.sort_values('Mean WPM', ascending = False, inplace = True)
+df_wpm_by_book.reset_index(drop=True,inplace=True)
+df_wpm_by_book.to_csv('Analyses/mean_wpm_by_book.csv')
+
+df_wpm_by_book
+
+
+# %%
+# The following chart will display a bar for each book for which at least one 
+# test has been taken. It will also show a line that corresponds to the player's
+# overall WPM across all books. The bars are colored by test count, making
+# it easier to identify which bars might be skewed by a low number of results.
+# The 'Total' value in df_wpm_by_book is displayed as a line instead of as
+# a color so as not to interfere with the color gradient.
+
+# Retrieving the total mean WPM value in df_wpm_by_book:
+total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['Mean WPM']
+total_mean_wpm
+
+fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), x = 'Book', y = 'Mean WPM', color = 'Tests')
+fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm)
+# See https://plotly.com/python/shapes/ for the add_shape() code.
+# The use of -0.5 and len() - 1.5 is based on gleasocd's answer at 
+# https://stackoverflow.com/a/40408960/13097194 . len(df) - 0.5 would normally
+# work, except that I reduced the size of the DataFrame by 1 when excluding
+# the 'Total' book.
+fig_mean_wpm_by_book.write_html('Analyses/mean_wpm_by_book.html')
+fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_mean_wpm_by_book
+
 
 # %%
 analysis_end_time = time.time()
