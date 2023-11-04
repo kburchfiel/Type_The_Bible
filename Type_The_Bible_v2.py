@@ -19,6 +19,7 @@
 
 # %%
 import pandas as pd
+pd.set_option('display.max_columns', 1000)
 import time
 import plotly.express as px
 from getch import getch # Installed this library using pip install py-getch, not
@@ -59,7 +60,8 @@ df_results = pd.read_csv('results.csv', index_col='Test_Number')
 df_results
 
 # %%
-# # If you ever need to drop a particular result (e.g. due to a glitch), you can do so as follows:
+# If you ever need to drop a particular result,
+# you can do so as follows:
 # df_results.drop(17, inplace = True)
 # df_results.to_csv('results.csv') # We want to preserve the index so as not
 # to lose our 'Test_Number' values
@@ -92,7 +94,7 @@ rng = np.random.default_rng(random_seed) # Based on
 df_Bible
 
 # %% [markdown]
-# [This fantastic answer](https://stackoverflow.com/a/23294659/13097194) by 'Kevin' at Stack Overflow proved helpful in implementing user validation code within this program. 
+# [This fantastic answer](https://stackoverflow.com/a/23294659/13097194) by Kevin at Stack Overflow proved helpful in implementing user validation code within this program. 
 
 # %%
 def select_verse():
@@ -119,7 +121,8 @@ verse or 0 for a randomly selected verse.")
         # verses haven't yet been typed. We can do so by filtering df_Bible
         # to include only untyped verses.
         elif response == -2:
-            verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order'].copy())
+            verses_not_yet_typed = list(
+                df_Bible.query("Typed == 0")['Verse_Order'].copy())
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -130,7 +133,8 @@ been typed.")
             return rng.choice(verses_not_yet_typed) # Chooses one of these
             # untyped verses at random
         elif response == -3:
-            verses_not_yet_typed = list(df_Bible.query("Typed == 0")['Verse_Order'].copy())
+            verses_not_yet_typed = list(
+                df_Bible.query("Typed == 0")['Verse_Order'].copy())
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -245,7 +249,8 @@ within the Bible .csv file).\n")
             # to crash with an IndexError).
             for i in range(len(verse_response_words)):
                 if verse_response_words[i] != verse_words[i]:
-                    print(f"Word number {i} ('{verse_words[i]}') was typed '{verse_response_words[i]}'.")
+                    print(f"Word number {i} ('{verse_words[i]}') \
+was typed '{verse_response_words[i]}'.")
                     # If the response has more or fewer words than the original
                     # verse, some correctly typed words might appear within
                     # this list also.
@@ -259,10 +264,12 @@ within the Bible .csv file).\n")
     # then dividing by 5 to convert from characters to words.
     wpm
 
-    print(f"Your CPS and WPM were {round(cps, 3)} and {round(wpm, 3)}, respectively.")
+    print(f"Your CPS and WPM were {round(cps, 3)} and {round(wpm, 3)}, \
+respectively.")
 
     # Creating a single-row DataFrame that stores the player's results:
-    df_latest_result = pd.DataFrame(index = [len(results_table)+1], data = {'Unix_Start_Time':typing_start_time, 
+    df_latest_result = pd.DataFrame(index = [
+        len(results_table)+1], data = {'Unix_Start_Time':typing_start_time, 
     'Local_Start_Time':local_start_time,
     'UTC_Start_Time':utc_start_time,
     'Characters':len(verse),
@@ -358,18 +365,58 @@ been typed.")
                 print("Please enter either -1, 0, 1, 2, or 3.\n")  
 
 # %%
+def calculate_current_day_results(df):
+    ''' This function reports the number of characters, total verses, and 
+    unique verses that the player has typed so far today.'''
+    df_current_day_results = df[pd.to_datetime(
+        df['Local_Start_Time']).dt.date == datetime.today().date()].copy()
+    if len(df_current_day_results) == 0:
+        result_string = "You haven't typed any Bible verses yet today."
+    else:
+        characters_typed_today = df_current_day_results['Characters'].sum()
+        total_verses_typed_today = len(df_current_day_results)
+
+        # Allowing for both singular and plural versions of 'verse' to 
+        # be displayed:
+        if total_verses_typed_today == 1:
+            total_verses_string = 'verse'
+        else:
+            total_verses_string = 'verses'
+
+        unique_verses_typed_today = len(df_current_day_results[
+            'Verse_Order'].unique())
+
+        if unique_verses_typed_today == 1:
+            unique_verses_string = 'verse'
+        else:
+            unique_verses_string = 'verses'
+
+        average_wpm_today = round(df_current_day_results['WPM'].mean(), 3)
+        median_wpm_today = round(df_current_day_results['WPM'].median(), 3)
+        result_string = f"So far today, you have typed \
+{characters_typed_today} characters from {total_verses_typed_today} Bible \
+{total_verses_string} (including {unique_verses_typed_today} unique \
+{unique_verses_string}). Your mean and median WPM today are \
+{average_wpm_today} and {median_wpm_today}, respectively."
+    return result_string
+
+# %%
 def run_game(results_table):
-    '''This function runs Type Through the Bible by calling various other functions.
-    It allows users to select
+    '''This function runs Type Through the Bible by 
+    calling various other functions. It allows users to select
     verses to type, then runs typing tests and stores the results in
     the DataFrame passed to results_table.'''
     
     print("Welcome to Type Through the Bible!")
+    # The game will now share the player's progress for the current day:
+    print(calculate_current_day_results(results_table))
     verse_number = select_verse()
     
     while True: # Allows the game to continue until the user exits
         results_table = run_typing_test(verse_number=verse_number, 
         results_table=results_table)
+        # The game will next share an updated progress report:
+        print(calculate_current_day_results(results_table))
         
         # The player will now be prompted to select a new verse number 
         # (or to save and quit). This verse_number, provided it is not -1,
@@ -401,7 +448,7 @@ print(f"You have typed {characters_typed_sum} characters so far, which represent
 
 
 # %% [markdown]
-# # Adding in additional statistics to df_results:
+# # Adding in additional values and statistics to df_results:
 # 
 # (The following cell was derived from [this script](https://github.com/kburchfiel/typeracer_data_analyzer/blob/master/typeracer_data_analyzer_v2.ipynb) that I wrote.)
 # 
@@ -411,8 +458,10 @@ print(f"You have typed {characters_typed_sum} characters so far, which represent
 df_results['Last 10 Avg'] = df_results['WPM'].rolling(10).mean()
 df_results['Last 100 Avg'] = df_results['WPM'].rolling(100).mean()
 df_results['Last 1000 Avg'] = df_results['WPM'].rolling(1000).mean()
+
 df_results['Local_Year'] = pd.to_datetime(df_results['Local_Start_Time']).dt.year
 df_results['Local_Month'] = pd.to_datetime(df_results['Local_Start_Time']).dt.month
+df_results['Local_Date'] = pd.to_datetime(df_results['Local_Start_Time']).dt.date
 df_results['Local_Hour'] = pd.to_datetime(df_results['Local_Start_Time']).dt.hour
 df_results['Count'] = 1 # Useful for pivot tables that analyze test counts
 # by book, month, etc.
@@ -451,6 +500,9 @@ attempt_save(df_results, 'results.csv', index = True)
 # %%
 attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = False)
 
+# %%
+print("Successfully saved updated copies of the Results and Bible .csv files.")
+
 # %% [markdown]
 # # Visualizing the player's progress in typing the entire Bible:
 
@@ -470,11 +522,13 @@ df_Bible['Count'] = 1
 # It's pretty amazing that such a complex visualization can be created using
 # just one line of code. Thanks Plotly!
 fig_tree_map_books_chapters_verses = px.treemap(
-    df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], values = 'Characters', color = 'Typed')
+    df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], 
+    values = 'Characters', color = 'Typed')
 # fig_verses_typed
 
 # %%
-fig_tree_map_books_chapters_verses.write_html('Analyses/tree_map_books_chapters_verses.html')
+fig_tree_map_books_chapters_verses.write_html(
+    'Analyses/tree_map_books_chapters_verses.html')
 
 # %%
 # # A similar chart that doesn't use the Typed column for color coding:
@@ -482,7 +536,8 @@ fig_tree_map_books_chapters_verses.write_html('Analyses/tree_map_books_chapters_
 # made to the code itself, so it can be 
 # commented out after being run once.)
 # fig_Bible_verses.write_html('Bible_tree_map.html')
-# fig_Bible_verses = px.treemap(df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], values = 'Characters')
+# fig_Bible_verses = px.treemap(df_Bible, path = ['Book_Name', 
+# 'Chapter_Name', 'Verse_#'], values = 'Characters')
 # fig_Bible_verses
 
 # %%
@@ -492,10 +547,12 @@ df_Bible
 # This variant of the treemap shows chapters and verses rather than books,
 # chapters, and verses.
 if (run_on_notebook == True) & (extra_analyses == True):
-    fig_tree_map_chapters_verses = px.treemap(df_Bible, path = ['Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed')
-    fig_tree_map_chapters_verses.write_html('Analyses/tree_map_chapters_verses.html')
-
-    fig_tree_map_chapters_verses.write_image('Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
+    fig_tree_map_chapters_verses = px.treemap(df_Bible, path = [
+        'Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed')
+    fig_tree_map_chapters_verses.write_html(
+        'Analyses/tree_map_chapters_verses.html')
+    fig_tree_map_chapters_verses.write_image(
+        'Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
 
 # %%
 # This variant of the treemap shows each verse as its own box, which results in 
@@ -503,29 +560,43 @@ if (run_on_notebook == True) & (extra_analyses == True):
 # (if it even loads at all).
 
 if (run_on_notebook == True) & (extra_analyses == True):
-    fig_tree_map_verses = px.treemap(df_Bible, path = ['Verse_Order'], values = 'Characters', color = 'Typed')
+    fig_tree_map_verses = px.treemap(df_Bible, path = ['Verse_Order'], 
+                                     values = 'Characters', color = 'Typed')
     fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
-    fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', width = 7680, height = 4320) 
-    fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', width = 15360, height = 8640) 
-# fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, height = 17280) # Didn't end up rendering successfully, probably because the dimensions were absurdly large!
+    fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', 
+                                    width = 7680, height = 4320) 
+    fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', 
+                                    width = 15360, height = 8640) 
+# fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, 
+# height = 17280) # Didn't end up rendering successfully, probably 
+# because the dimensions were absurdly large!
 
 # %% [markdown]
 # ### Creating a bar chart that shows the proportion of each book that has been typed so far:
 
 # %%
-df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 'Book_Name'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
+df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 
+'Book_Name'], values = ['Characters', 'Characters_Typed'], 
+aggfunc = 'sum').reset_index()
 # Adding 'Book_Order' as the first index value allows for the pivot tables
 # and bars to be ordered by that value.
-df_characters_typed_by_book['proportion_typed'] = df_characters_typed_by_book['Characters_Typed'] / df_characters_typed_by_book['Characters']
-df_characters_typed_by_book.to_csv('Analyses/characters_typed_by_book.csv')
+df_characters_typed_by_book['proportion_typed'] = df_characters_typed_by_book[
+    'Characters_Typed'] / df_characters_typed_by_book['Characters']
+df_characters_typed_by_book.to_csv(
+    'Analyses/characters_typed_by_book.csv')
 df_characters_typed_by_book
 
 # %%
-fig_proportion_of_each_book_typed = px.bar(df_characters_typed_by_book, x = 'Book_Name', y = 'proportion_typed')
+fig_proportion_of_each_book_typed = px.bar(df_characters_typed_by_book, 
+x = 'Book_Name', y = 'proportion_typed')
 fig_proportion_of_each_book_typed.update_yaxes(range = [0, 1]) # Setting
 # the maximum y value as 1 better demonstrates how much of the Bible
 # has been typed so far
-fig_proportion_of_each_book_typed.write_html('Analyses/proportion_of_each_book_typed.html')
+fig_proportion_of_each_book_typed.write_html(
+    'Analyses/proportion_of_each_book_typed.html')
+fig_proportion_of_each_book_typed.write_image(
+    'Analyses/proportion_of_each_book_typed.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_proportion_of_each_book_typed
 
 # %% [markdown]
@@ -534,25 +605,41 @@ fig_proportion_of_each_book_typed
 # This provides a clearer view of the player's progress in typing the Bible, as each bar's height is based on the number of characters. (In contrast, bars for fully typed small books will be just as high in fig_proportion_of_each_book_typed as those for fully typed large books.)
 
 # %%
-fig_characters_typed_in_each_book = px.bar(df_characters_typed_by_book, x = 'Book_Name', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
-fig_characters_typed_in_each_book.write_html('Analyses/characters_typed_by_book.html')
+fig_characters_typed_in_each_book = px.bar(df_characters_typed_by_book, 
+x = 'Book_Name', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
+fig_characters_typed_in_each_book.write_html(
+    'Analyses/characters_typed_by_book.html')
+fig_characters_typed_in_each_book.write_image(
+    'Analyses/characters_typed_by_book.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_characters_typed_in_each_book
 
 # %% [markdown]
 # ## Creating charts that show both book- and chapter-level data:
 
 # %%
-df_characters_typed_by_book_and_chapter = df_Bible.pivot_table(index = ['Book_Order', 'Book_Name', 'Book_and_Chapter'], values = ['Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
-df_characters_typed_by_book_and_chapter['proportion_typed'] = df_characters_typed_by_book_and_chapter['Characters_Typed'] / df_characters_typed_by_book_and_chapter['Characters']
-df_characters_typed_by_book_and_chapter.to_csv('Analyses/characters_typed_by_book_and_chapter.csv')
+df_characters_typed_by_book_and_chapter = df_Bible.pivot_table(index = [
+'Book_Order', 'Book_Name', 'Book_and_Chapter'], values = [
+    'Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
+df_characters_typed_by_book_and_chapter[
+'proportion_typed'] = df_characters_typed_by_book_and_chapter[
+'Characters_Typed'] / df_characters_typed_by_book_and_chapter['Characters']
+df_characters_typed_by_book_and_chapter.to_csv(
+    'Analyses/characters_typed_by_book_and_chapter.csv')
 df_characters_typed_by_book_and_chapter
 
 # %% [markdown]
 # The following chart shows both books (as bars) and chapters (as sections of these bars). These sections are also color coded by the proportion of each chapter that has been typed.
 
 # %%
-fig_characters_typed_in_each_book_and_chapter = px.bar(df_characters_typed_by_book_and_chapter, x = 'Book_Name', y = ['Characters'], color = 'proportion_typed')
-fig_characters_typed_in_each_book_and_chapter.write_html('Analyses/characters_typed_by_book_and_chapter.html')
+fig_characters_typed_in_each_book_and_chapter = px.bar(
+df_characters_typed_by_book_and_chapter, x = 'Book_Name', y = [
+    'Characters'], color = 'proportion_typed')
+fig_characters_typed_in_each_book_and_chapter.write_html(
+    'Analyses/characters_typed_by_book_and_chapter.html')
+fig_characters_typed_in_each_book_and_chapter.write_image(
+    'Analyses/characters_typed_by_book_and_chapter.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_characters_typed_in_each_book_and_chapter
 
 # %% [markdown]
@@ -561,16 +648,130 @@ fig_characters_typed_in_each_book_and_chapter
 # These proved difficult to interpret due to the narrowness of the bars, so I'm commenting this code out for now.
 
 # %%
-# fig_proportion_of_each_chapter_typed = px.bar(df_characters_typed_by_chapter, x = 'Book_and_Chapter', y = 'proportion_typed')
+# fig_proportion_of_each_chapter_typed = px.bar(df_characters_typed_by_chapter, 
+# x = 'Book_and_Chapter', y = 'proportion_typed')
 # fig_proportion_of_each_chapter_typed.update_yaxes(range = [0, 1]) # Setting
 # # the maximum y value as 1 better demonstrates how much of the Bible
 # # has been typed so far
-# fig_proportion_of_each_chapter_typed.write_html('Analyses/proportion_of_each_chapter_typed.html')
+# fig_proportion_of_each_chapter_typed.write_html(
+# 'Analyses/proportion_of_each_chapter_typed.html')
 # fig_proportion_of_each_chapter_typed
 
-# fig_characters_typed_in_each_chapter = px.bar(df_characters_typed_by_chapter, x = 'Book_and_Chapter', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
-# fig_characters_typed_in_each_chapter.write_html('Analyses/characters_typed_by_chapter.html')
+# fig_characters_typed_in_each_chapter = px.bar(df_characters_typed_by_chapter, 
+# x = 'Book_and_Chapter', y = ['Characters', 'Characters_Typed'], 
+# barmode = 'overlay')
+# fig_characters_typed_in_each_chapter.write_html(
+# 'Analyses/characters_typed_by_chapter.html')
 # fig_characters_typed_in_each_chapter
+
+# %% [markdown]
+# ## Calculating the dates with the most characters and verses typed:
+
+# %%
+df_top_dates_by_characters = df_results.pivot_table(
+    index = 'Local_Date', values = 'Characters', aggfunc = 'sum').reset_index(
+    ).sort_values('Characters', ascending = False).head(50)
+df_top_dates_by_characters['Rank'] = df_top_dates_by_characters[
+    'Characters'].rank(ascending = False, method = 'min').astype('int')
+# Creating a column that shows both the rank and date: (This also prevents
+# Plotly from converting the x axis to a date range, which would interfere
+# with the order of the chart items)
+df_top_dates_by_characters['Rank and Date'] = '#'+df_top_dates_by_characters[
+    'Rank'].astype('str') + ': ' + df_top_dates_by_characters[
+        'Local_Date'].astype('str')
+df_top_dates_by_characters.reset_index(drop=True,inplace=True)
+
+# %%
+fig_top_dates_by_characters = px.bar(df_top_dates_by_characters, 
+x = 'Rank and Date', y = 'Characters')
+fig_top_dates_by_characters.update_xaxes(tickangle = 90)
+fig_top_dates_by_characters.write_html('Analyses/top_dates_by_characters.html')
+fig_top_dates_by_characters.write_image(
+    'Analyses/top_dates_by_characters.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_dates_by_characters
+
+# %%
+df_top_dates_by_verses = df_results.pivot_table(
+    index = 'Local_Date', values = 'Count', aggfunc = 'sum').reset_index(
+    ).rename(columns = {'Count':'Verses'}).sort_values(
+        'Verses', ascending = False).head(50)
+
+
+df_top_dates_by_verses['Rank'] = df_top_dates_by_verses['Verses'].rank(
+    ascending = False, method = 'min').astype('int')
+df_top_dates_by_verses['Rank and Date'] = '#'+df_top_dates_by_verses[
+    'Rank'].astype('str') + ': ' + df_top_dates_by_verses[
+        'Local_Date'].astype('str')
+df_top_dates_by_verses.reset_index(drop=True,inplace=True)
+df_top_dates_by_verses
+
+# %%
+fig_top_dates_by_verses = px.bar(df_top_dates_by_verses, 
+x = 'Rank and Date', y = 'Verses')
+fig_top_dates_by_verses.update_xaxes(tickangle = 90)
+fig_top_dates_by_verses.write_html('Analyses/top_dates_by_verses.html')
+fig_top_dates_by_verses.write_image(
+    'Analyses/top_dates_by_verses.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_dates_by_verses
+
+# %% [markdown]
+# ## Performing similar analyses by month:
+
+# %%
+df_top_months_by_characters = df_results.pivot_table(
+    index = ['Local_Year', 'Local_Month'], 
+    values = 'Characters', aggfunc = 'sum').reset_index(
+    ).sort_values('Characters', ascending = False).head(50)
+
+df_top_months_by_characters['Rank'] = df_top_months_by_characters[
+'Characters'].rank(ascending = False, method = 'min').astype('int')
+df_top_months_by_characters['Rank and Month'] = '#'+df_top_months_by_characters[
+    'Rank'].astype('str') + ': ' + df_top_months_by_characters[
+        'Local_Year'].astype('str') + '-' + df_top_months_by_characters[
+            'Local_Month'].astype('str')
+df_top_months_by_characters.reset_index(drop=True,inplace=True)
+
+df_top_months_by_characters
+
+# %%
+fig_top_months_by_characters = px.bar(df_top_months_by_characters, 
+x = 'Rank and Month', y = 'Characters')
+fig_top_months_by_characters.update_xaxes(tickangle = 90)
+fig_top_months_by_characters.write_html(
+    'Analyses/top_months_by_characters.html')
+fig_top_months_by_characters.write_image(
+    'Analyses/top_months_by_characters.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_months_by_characters
+
+# %%
+df_top_months_by_verses = df_results.pivot_table(
+    index = ['Local_Year', 'Local_Month'], 
+    values = 'Count', aggfunc = 'sum').reset_index(
+    ).rename(columns={'Count':'Verses'}).sort_values(
+        'Verses', ascending = False).head(50)
+
+df_top_months_by_verses['Rank'] = df_top_months_by_verses['Verses'].rank(
+    ascending = False, method = 'min').astype('int')
+df_top_months_by_verses['Rank and Month'] = '#'+df_top_months_by_verses[
+    'Rank'].astype('str') + ': ' + df_top_months_by_verses[
+        'Local_Year'].astype('str') + '-' + df_top_months_by_verses[
+            'Local_Month'].astype('str')
+df_top_months_by_verses.reset_index(drop=True,inplace=True)
+
+df_top_months_by_verses
+
+# %%
+fig_top_months_by_verses = px.bar(df_top_months_by_verses, 
+x = 'Rank and Month', y = 'Verses')
+fig_top_months_by_verses.update_xaxes(tickangle = 90)
+fig_top_months_by_verses.write_html('Analyses/top_months_by_verses.html')
+fig_top_months_by_verses.write_image(
+    'Analyses/top_months_by_verses.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_months_by_verses
 
 # %% [markdown]
 # # Analyzing WPM data:
@@ -582,8 +783,10 @@ fig_characters_typed_in_each_book_and_chapter
 # Top 20 WPM results:
 
 # %%
-df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(100).copy()
-df_top_100_wpm.insert(0, 'Rank', df_top_100_wpm['WPM'].rank(ascending = False, method = 'min').astype('int'))
+df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(
+    100).copy()
+df_top_100_wpm.insert(0, 'Rank', df_top_100_wpm['WPM'].rank(
+    ascending = False, method = 'min').astype('int'))
 # method = 'min' assigns the lowest rank to any rows that happen to have
 # the same WPM. See 
 # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rank.html
@@ -593,59 +796,76 @@ df_top_100_wpm
 # %%
 fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM')
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
-fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', 
+width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_100_wpm
 
 # %% [markdown]
 # Top 20 'Last 10 Average' values:
 
 # %%
-df_top_20_last_10_avg_results = df_results.sort_values('Last 10 Avg', ascending = False).head(20).copy()
+df_top_20_last_10_avg_results = df_results.sort_values(
+    'Last 10 Avg', ascending = False).head(20).copy()
 df_top_20_last_10_avg_results
 
 # %%
-fig_df_results_by_test_number = px.line(df_results, x = df_results.index, y = ['WPM', 'Last 10 Avg', 'Last 100 Avg', 'Last 1000 Avg', 'cumulative_avg'])
+fig_df_results_by_test_number = px.line(df_results, x = df_results.index, 
+y = ['WPM', 'Last 10 Avg', 'Last 100 Avg', 'Last 1000 Avg', 'cumulative_avg'])
 fig_df_results_by_test_number.write_html('Analyses/results_by_test_number.html')
-fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', 
+width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_df_results_by_test_number
 
 # %% [markdown]
 # ## Evaluating average results by month:
 
 # %%
-df_results_by_month = df_results.pivot_table(index = ['Local_Year', 'Local_Month'], values = ['Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
-df_results_by_month['Year/Month'] = df_results_by_month['Local_Year'].astype('str') + ' (' + df_results_by_month['Local_Month'].astype('str') + ')'
-# Putting the month in parentheses prevents Plotly 
-# from automatically interpreting the results as datetime values, which would
-# affect the final output of the chart. There is likely a more elegant
-# way to disable the automatic datetime formatting.
+df_results_by_month = df_results.pivot_table(
+    index = ['Local_Year', 'Local_Month'], values = ['Count', 'WPM'], 
+    aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+# Enclosing the year/month in parentheses so that they won't be converted
+df_results_by_month['Year/Month'] = df_results_by_month[
+    'Local_Year'].astype('str') + '-' + df_results_by_month[
+    'Local_Month'].astype('str')
 df_results_by_month.to_csv('Analyses/results_by_month.csv')
 df_results_by_month
 
 # %%
-fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', y = 'WPM', color = 'Count')
+fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', 
+y = 'WPM', color = 'Count')
+fig_results_by_month.update_xaxes(type = 'category') # This line, based on
+# Pracheta's response at https://stackoverflow.com/a/64424308/13097194,
+# updates the axes to show the date-month pairs as strings rather than 
+# as Plotly-formatted date values. This will also prevent missing
+# months from appearing in the graph.
 fig_results_by_month.write_html('Analyses/results_by_month.html')
-fig_results_by_month.write_image('Analyses/results_by_month.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_results_by_month.write_image('Analyses/results_by_month.png', 
+width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_results_by_month
 
 # %% [markdown]
 # ## Evaluating average results by hour of day:
 
 # %%
-df_results_by_hour = df_results.pivot_table(index = ['Local_Hour'], values = ['Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_hour = df_results.pivot_table(index = ['Local_Hour'], 
+values = ['Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
 df_results_by_hour
 
 # %%
-fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Hour', y = 'WPM', color = 'Count')
+fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Hour', 
+y = 'WPM', color = 'Count')
 fig_results_by_hour.write_html('Analyses/results_by_hour.html')
-fig_results_by_hour.write_image('Analyses/results_by_hour.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_results_by_hour.write_image('Analyses/results_by_hour.png', 
+width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_results_by_hour
 
 # %% [markdown]
 # # Comparing mean WPMs by Bible books:
 
 # %%
-df_wpm_by_book = df_results.pivot_table(index = 'Book', values = 'WPM', aggfunc = ['count', 'mean'], margins = True, margins_name = 'Total').reset_index()
+df_wpm_by_book = df_results.pivot_table(index = 'Book', values = 'WPM', 
+aggfunc = ['count', 'mean'], margins = True, 
+margins_name = 'Total').reset_index()
 df_wpm_by_book.columns = 'Book', 'Tests', 'Mean WPM'
 df_wpm_by_book.sort_values('Mean WPM', ascending = False, inplace = True)
 df_wpm_by_book.reset_index(drop=True,inplace=True)
@@ -666,22 +886,26 @@ df_wpm_by_book
 total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['Mean WPM']
 total_mean_wpm
 
-fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), x = 'Book', y = 'Mean WPM', color = 'Tests')
-fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm)
+fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), 
+x = 'Book', y = 'Mean WPM', color = 'Tests')
+fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, 
+x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm)
 # See https://plotly.com/python/shapes/ for the add_shape() code.
 # The use of -0.5 and len() - 1.5 is based on gleasocd's answer at 
 # https://stackoverflow.com/a/40408960/13097194 . len(df) - 0.5 would normally
 # work, except that I reduced the size of the DataFrame by 1 when excluding
 # the 'Total' book.
 fig_mean_wpm_by_book.write_html('Analyses/mean_wpm_by_book.html')
-fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
 fig_mean_wpm_by_book
 
 
 # %%
 analysis_end_time = time.time()
 analysis_time = analysis_end_time - analysis_start_time
-print(f"Finished updating analyses in {round(analysis_time, 3)} seconds. Enter any key to exit.") # Allows the console to stay open when the
+print(f"Finished updating analyses in {round(analysis_time, 3)} seconds. \
+Enter any key to exit.") # Allows the console to stay open when the
 # .py version of the program is run
 
 input()
