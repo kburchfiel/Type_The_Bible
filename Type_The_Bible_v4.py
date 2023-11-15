@@ -28,7 +28,6 @@ import numpy as np
 from datetime import datetime, date, timezone # Based on 
 # https://docs.python.org/3/library/datetime.html
 
-# %%
 from colorama import just_fix_windows_console, Fore, Back, Style
 # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
 just_fix_windows_console() # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
@@ -298,16 +297,27 @@ within the Bible .csv file).\n")
                     text_color = Fore.RED 
                 
                 # Printing the player's response so far: (Note that 
-                # verse_response gets printed instead of the last character.
-                # The addition of 'end = "\r", flush = True' to the print()
-                # call allows characters to get displayed immediately
-                # after one another rather than on separate lines.
-                print(f"{text_color}{verse_response_with_newlines}", end = "\r", flush = True)
-                # The 'end' and 'flush' arguments are 
-                # Based on https://stackoverflow.com/a/69030559/13097194
+                # verse_response gets printed instead of the last character.)
+
+                # The addition of 'end = "\r", which comes from Sencer H at
+                #  https://stackoverflow.com/a/69030559/13097194,
+                #  allows characters to get 
+                # displayed immediately
+                # after one another rather than on separate lines. It also
+                # prevents a new line from appearing each time the user
+                # types a character.
+                print(f"{text_color}{verse_response_with_newlines.ljust(100)}", end = "\r")
+                # . I had also added in flush = True, but this didn't appear
+                # to affect the output. 
+                # .ljust(100) pads the string with ASCII spaces on the right
+                # (see https://docs.python.org/3/library/stdtypes.html#str.ljust).
+                # I added this in so that, if the user needed to hit backspace,
+                # the deleted characters would no longer appear within the string.
                 # For the use of Colorama to produce red and green text, see
                 # https://pypi.org/project/colorama/
                 # and https://stackoverflow.com/a/3332860/13097194
+
+
                 if verse_response == verse: # Note that, unlike with version
                     # v1, the player does not need to hit 'Enter' in order
                     # to end the typing test after writing a completed
