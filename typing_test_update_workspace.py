@@ -1,3 +1,9 @@
+# This file makes it easier to test out updates to V2
+# of the typing test in Type Through the Bible.
+
+import os
+column_width = os.get_terminal_size().columns
+
 import pandas as pd
 pd.set_option('display.max_columns', 1000)
 import time
@@ -8,7 +14,7 @@ import numpy as np
 from datetime import datetime, date, timezone # Based on 
 # https://docs.python.org/3/library/datetime.html
 
-from colorama import just_fix_windows_console, Fore, Back, Style
+from colorama import just_fix_windows_console, Fore, Back, Style, Cursor
 # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
 just_fix_windows_console() # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
 
@@ -23,7 +29,6 @@ print(verse)
 
 verse_response = '' # This string will store the player's 
 # response.
-verse_response_with_newlines = ''
 local_start_time = datetime.now().isoformat()
 utc_start_time = datetime.now(timezone.utc).isoformat()
 typing_start_time = time.time()
@@ -42,13 +47,6 @@ while True: # This while loop allows the player to enter
         # associated with the backspace key. 
         verse_response = verse_response[:-1] # Trims the last
         # value off verse_response.
-        verse_response_with_newlines = verse_response_with_newlines[:-1]
-    elif character == b'\r': # Returns True if the user hits Enter.
-        verse_response_with_newlines = '' # Resets the view to avoid a glitch
-        # that can occur when more than one line is present in the output.
-        print('\r') # Moves the cursor one line down so that the player 
-        # doesn't overwrite his/her previous output in the process
-        # of writing the new line
     elif character == b'`':
         print(Style.RESET_ALL) # Resets the color of the text.
         # See https://pypi.org/project/colorama/
@@ -56,8 +54,7 @@ while True: # This while loop allows the player to enter
     else: 
         # The following line adds the latest character typed
         # to verse_response.
-        verse_response += character.decode('ascii') 
-        verse_response_with_newlines += character.decode('ascii') 
+        verse_response += character.decode('ascii')  
         # See https://stackoverflow.com/questions/17615414/how-to-convert-binary-string-to-normal-string-in-python3
 
     # Determining which color to use for the text:
@@ -76,10 +73,20 @@ while True: # This while loop allows the player to enter
     # after one another rather than on separate lines. It also
     # prevents a new line from appearing whenever the user 
     # types an entry.
-    print(f"{text_color}{verse_response_with_newlines.ljust(100)}", end = "r", flush = True)
+
+    line_count = ((len(verse_response)-1) // column_width) + 1
+    # Calculates the number of lines that are 
+    # being displayed so far. 
+
+    up_command = f"\033[{line_count}A"
+    # This value, based on Richard's response at
+    # https://stackoverflow.com/a/33206814/13097194 ,
+    # will move the cursor up up_count number of times.
+
+    print(f"{text_color}{verse_response.ljust(column_width*line_count + 1)}{up_command}", end = "\r")
     # I had also added in flush = True, but this didn't appear
     # to affect the output. 
-    # .ljust(100) pads the string with ASCII spaces on the right
+    # .ljust() pads the string with ASCII spaces on the right
     # (see https://docs.python.org/3/library/stdtypes.html#str.ljust).
     # I added this in so that, if the user needed to hit backspace,
     # the deleted characters would no longer appear within the string.
@@ -96,10 +103,3 @@ while True: # This while loop allows the player to enter
         print("\nSuccess!")
         print(Style.RESET_ALL)
         break
-
-    # if len(verse_response_with_newlines) == 100:
-    #     verse_response_with_newlines = '' # Resets the view to avoid a glitch
-    #     # that can occur when more than one line is present in the output.
-    #     print('\r') # Moves the cursor one line down so that the player 
-    #     # doesn't overwrite his/her previous output in the process
-    #     # of writing the new line
