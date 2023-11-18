@@ -65,6 +65,20 @@ df_results = pd.read_csv('results.csv', index_col='Test_Number')
 df_results
 
 # %%
+for column in ['Local_Start_Time', 'UTC_Start_Time']:
+    df_results[column] = pd.to_datetime(df_results[column])
+df_results
+
+# %%
+# # If you accidentally overwrite your Unix_Start_Time values with something else,
+# # you can recreate them using UTC_Start_Time values as follows:
+# # (This code is based on that shown in
+# # https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#from-timestamps-to-epoch )
+# df_results['Unix_Start_Time'] = ((df_results['UTC_Start_Time'] - pd.Timestamp(
+# "1970-01-01", tz = 'utc')) // pd.Timedelta("1ns") / 1000000000)
+# df_results
+
+# %%
 # If you ever need to drop a particular result,
 # you can do so as follows:
 # df_results.drop(17, inplace = True)
@@ -166,12 +180,6 @@ been typed.")
 
 
 # %%
-(305 // 100) -1
-
-# %%
-'T'[:-1]
-
-# %%
 def run_typing_test(verse_number, results_table, test_type = 'v2'):
     '''This function calculates how quickly the user types the characters
     passed to the Bible verse represented by verse_number, then saves those 
@@ -231,10 +239,15 @@ within the Bible .csv file).\n")
         # when to move the cursor up and how many lines to fill with
         # blank spaces.
 
-        column_width = os.get_terminal_size().columns
+        if run_on_notebook == False: # The following line crashed for me
+            # when running the program within a notebook.
+            column_width = os.get_terminal_size().columns
         # get_terminal_size() is cross-platform. See
         # https://docs.python.org/3.8/library/os.html?highlight=get_terminal_size#os.get_terminal_size
-        
+        else:
+            column_width = 120 # The default column width for my
+            # terminal
+
         # print(f"Column width is {column_width}")
         print("Start!")      
         if test_type == 'v1': 
@@ -245,8 +258,16 @@ within the Bible .csv file).\n")
             # a character was mistyped until the very end, which can get
             # frustrating. Therefore, I've now added in a new version
             # of the test (called 'v2') that can be used instead. 
-            local_start_time = datetime.now().isoformat()
-            utc_start_time = datetime.now(timezone.utc).isoformat()
+
+            local_start_time = pd.Timestamp.now()
+            utc_start_time = pd.Timestamp.now(timezone.utc)
+
+            # I used to use ISO8601-compatible timestamps via the following
+            # lines, but decided to switch to a value that Pandas would 
+            # immediately recognize as a datetime.
+            # local_start_time = datetime.now().isoformat()
+            # utc_start_time = datetime.now(timezone.utc).isoformat()
+
             typing_start_time = time.time()
             verse_response = input() 
             # The following code will execute once the player finishes typing and
@@ -270,8 +291,10 @@ within the Bible .csv file).\n")
             # make it cross-platform, however.
             verse_response = '' # This string will store the player's 
             # response.
-            local_start_time = datetime.now().isoformat()
-            utc_start_time = datetime.now(timezone.utc).isoformat()
+            
+            local_start_time = pd.Timestamp.now()
+            utc_start_time = pd.Timestamp.now(timezone.utc)
+
             typing_start_time = time.time()
             while True: # This while loop allows the player to enter
                 # multiple characters.
@@ -409,7 +432,7 @@ respectively.")
     df_latest_result
 
     # Adding this new row to results_table:
-    results_table = pd.concat([results_table, df_latest_result])\
+    results_table = pd.concat([results_table, df_latest_result])
     
     # Note: I could also have used df.at or df.iloc to add a new row
     # to df_latest_result, but I chose a pd.concat() setup in order to ensure
@@ -708,9 +731,6 @@ def calculate_current_day_results(df):
     return result_string
 
 # %%
-
-
-# %%
 def run_game(results_table):
     '''This function runs Type Through the Bible by 
     calling various other functions. It allows users to select
@@ -766,8 +786,8 @@ df_Bible
 characters_typed_sum = df_Bible['Characters_Typed'].sum()
 proportion_of_Bible_typed = characters_typed_sum / df_Bible['Characters'].sum()
 
-print(f"You have typed {characters_typed_sum} characters so far, which represents \
-{round(100*proportion_of_Bible_typed, 4)}% of the Bible.")
+print(f"You have typed {characters_typed_sum} characters so far, \
+which represents {round(100*proportion_of_Bible_typed, 4)}% of the Bible.")
 
 
 
@@ -783,12 +803,40 @@ df_results['Last 10 Avg'] = df_results['WPM'].rolling(10).mean()
 df_results['Last 100 Avg'] = df_results['WPM'].rolling(100).mean()
 df_results['Last 1000 Avg'] = df_results['WPM'].rolling(1000).mean()
 
-df_results['Local_Year'] = pd.to_datetime(df_results['Local_Start_Time']).dt.year
-df_results['Local_Month'] = pd.to_datetime(df_results['Local_Start_Time']).dt.month
-df_results['Local_Date'] = pd.to_datetime(df_results['Local_Start_Time']).dt.date
-df_results['Local_Hour'] = pd.to_datetime(df_results['Local_Start_Time']).dt.hour
+
+df_results['Local_Start_Year'] = df_results['Local_Start_Time'].dt.year
+df_results['Local_Start_Month'] = df_results['Local_Start_Time'].dt.month
+df_results['Local_Start_Date'] = df_results['Local_Start_Time'].dt.date
+df_results['Local_Start_Hour'] = df_results['Local_Start_Time'].dt.hour
+df_results['Local_Start_Minute'] = df_results['Local_Start_Time'].dt.minute
+df_results['Local_Start_10_Minute_Block'] = df_results[
+'Local_Start_Minute'] // 10 + 1
+df_results['Local_Start_15_Minute_Block'] = df_results[
+'Local_Start_Minute'] // 15 + 1
+df_results['Local_Start_30_Minute_Block'] = df_results[
+'Local_Start_Minute'] // 30 + 1
+
 df_results['Count'] = 1 # Useful for pivot tables that analyze test counts
 # by book, month, etc.
+
+# In order to more accurately calculate the largest number of characters 
+# typed within a given block of time, we'll want to know the end time
+# of each test. This can be calculated as the sum of the local start time
+# and the number of seconds each test took.
+df_results['Local_End_Time'] = df_results[
+'Local_Start_Time'] + pd.to_timedelta(df_results['Seconds'], unit = 's')
+
+df_results['Local_End_Year'] = df_results['Local_End_Time'].dt.year
+df_results['Local_End_Month'] = df_results['Local_End_Time'].dt.month
+df_results['Local_End_Date'] = df_results['Local_End_Time'].dt.date
+df_results['Local_End_Hour'] = df_results['Local_End_Time'].dt.hour
+df_results['Local_End_Minute'] = df_results['Local_End_Time'].dt.minute
+df_results['Local_End_15_Minute_Block'] = df_results[
+'Local_End_Minute'] // 15 + 1
+df_results['Local_End_10_Minute_Block'] = df_results[
+'Local_End_Minute'] // 10 + 1
+df_results['Local_End_30_Minute_Block'] = df_results[
+'Local_End_Minute'] // 30 + 1
 
 # The following line uses a list comprehension to generate a cumulative average
 # of all WPM scores up until the current race. .iloc searches from 0 to i+1 for
@@ -989,12 +1037,24 @@ fig_characters_typed_in_each_book_and_chapter
 # fig_characters_typed_in_each_chapter
 
 # %% [markdown]
+# # Endurance statistics (e.g. most characters/verses typed over a given time period):
+
+# %% [markdown]
 # ## Calculating the dates with the most characters and verses typed:
+# 
+# Note: In order to create more accurate analyses, I will filter the results to only include values with the same start and end periods. (For instance, if a given test began at 9:59 p.m. on 2023-11-17 but ended after 10 p.m., that test would get filtered out of a 'top hours by characters typed' report, since including it would extend the time frame analyzed beyond a 60-minute window.)
 
 # %%
 df_top_dates_by_characters = df_results.pivot_table(
-    index = 'Local_Date', values = 'Characters', aggfunc = 'sum').reset_index(
-    ).sort_values('Characters', ascending = False).head(50)
+    index = ['Local_Start_Date', 'Local_End_Date'], values = 'Characters', aggfunc = 'sum').reset_index(
+    ).sort_values('Characters', ascending = False)
+# By using both the start and end dates as pivot index values, we've already 
+# separated results with different start and end dates from ones whose 
+# start and end dates are the same. (This will prevent the tests included
+# in a given date's calculation from extending beyond just that date.)
+# We'll also filter the DataFrame to exclude any results whose start
+# and end dates differ:
+df_top_dates_by_characters = df_top_dates_by_characters.query("Local_Start_Date == Local_End_Date").head(50).copy()
 df_top_dates_by_characters['Rank'] = df_top_dates_by_characters[
     'Characters'].rank(ascending = False, method = 'min').astype('int')
 # Creating a column that shows both the rank and date: (This also prevents
@@ -1002,12 +1062,13 @@ df_top_dates_by_characters['Rank'] = df_top_dates_by_characters[
 # with the order of the chart items)
 df_top_dates_by_characters['Rank and Date'] = '#'+df_top_dates_by_characters[
     'Rank'].astype('str') + ': ' + df_top_dates_by_characters[
-        'Local_Date'].astype('str')
+        'Local_Start_Date'].astype('str')
 df_top_dates_by_characters.reset_index(drop=True,inplace=True)
+df_top_dates_by_characters
 
 # %%
 fig_top_dates_by_characters = px.bar(df_top_dates_by_characters, 
-x = 'Rank and Date', y = 'Characters')
+x = 'Rank and Date', y = 'Characters', text = 'Characters')
 fig_top_dates_by_characters.update_xaxes(tickangle = 90)
 fig_top_dates_by_characters.write_html('Analyses/top_dates_by_characters.html')
 fig_top_dates_by_characters.write_image(
@@ -1017,22 +1078,23 @@ fig_top_dates_by_characters
 
 # %%
 df_top_dates_by_verses = df_results.pivot_table(
-    index = 'Local_Date', values = 'Count', aggfunc = 'sum').reset_index(
+    index = ['Local_Start_Date', 'Local_End_Date'], 
+    values = 'Count', aggfunc = 'sum').reset_index(
     ).rename(columns = {'Count':'Verses'}).sort_values(
-        'Verses', ascending = False).head(50)
-
-
+        'Verses', ascending = False)
+df_top_dates_by_verses = df_top_dates_by_verses.query(
+    "Local_Start_Date == Local_End_Date").head(50).copy()
 df_top_dates_by_verses['Rank'] = df_top_dates_by_verses['Verses'].rank(
     ascending = False, method = 'min').astype('int')
 df_top_dates_by_verses['Rank and Date'] = '#'+df_top_dates_by_verses[
     'Rank'].astype('str') + ': ' + df_top_dates_by_verses[
-        'Local_Date'].astype('str')
+        'Local_Start_Date'].astype('str')
 df_top_dates_by_verses.reset_index(drop=True,inplace=True)
 df_top_dates_by_verses
 
 # %%
 fig_top_dates_by_verses = px.bar(df_top_dates_by_verses, 
-x = 'Rank and Date', y = 'Verses')
+x = 'Rank and Date', y = 'Verses', text = 'Verses')
 fig_top_dates_by_verses.update_xaxes(tickangle = 90)
 fig_top_dates_by_verses.write_html('Analyses/top_dates_by_verses.html')
 fig_top_dates_by_verses.write_image(
@@ -1045,23 +1107,27 @@ fig_top_dates_by_verses
 
 # %%
 df_top_months_by_characters = df_results.pivot_table(
-    index = ['Local_Year', 'Local_Month'], 
+    index = ['Local_Start_Year', 'Local_End_Year', 
+    'Local_Start_Month', 'Local_End_Month'], 
     values = 'Characters', aggfunc = 'sum').reset_index(
-    ).sort_values('Characters', ascending = False).head(50)
+    ).sort_values('Characters', ascending = False)
+df_top_months_by_characters = df_top_months_by_characters.query(
+    "Local_Start_Year == Local_End_Year & \
+Local_Start_Month == Local_End_Month").head(50).copy()
 
 df_top_months_by_characters['Rank'] = df_top_months_by_characters[
 'Characters'].rank(ascending = False, method = 'min').astype('int')
 df_top_months_by_characters['Rank and Month'] = '#'+df_top_months_by_characters[
     'Rank'].astype('str') + ': ' + df_top_months_by_characters[
-        'Local_Year'].astype('str') + '-' + df_top_months_by_characters[
-            'Local_Month'].astype('str')
+        'Local_Start_Year'].astype('str') + '-' + df_top_months_by_characters[
+            'Local_Start_Month'].astype('str')
 df_top_months_by_characters.reset_index(drop=True,inplace=True)
 
 df_top_months_by_characters
 
 # %%
 fig_top_months_by_characters = px.bar(df_top_months_by_characters, 
-x = 'Rank and Month', y = 'Characters')
+x = 'Rank and Month', y = 'Characters', text = 'Characters')
 fig_top_months_by_characters.update_xaxes(tickangle = 90)
 fig_top_months_by_characters.write_html(
     'Analyses/top_months_by_characters.html')
@@ -1072,30 +1138,141 @@ fig_top_months_by_characters
 
 # %%
 df_top_months_by_verses = df_results.pivot_table(
-    index = ['Local_Year', 'Local_Month'], 
+    index = ['Local_Start_Year', 'Local_Start_Month', 
+    'Local_End_Year', 'Local_End_Month'], 
     values = 'Count', aggfunc = 'sum').reset_index(
     ).rename(columns={'Count':'Verses'}).sort_values(
-        'Verses', ascending = False).head(50)
+        'Verses', ascending = False)
+df_top_months_by_verses = df_top_months_by_verses.query(
+    "Local_Start_Year == Local_End_Year & \
+Local_Start_Month == Local_End_Month").head(50).copy()
 
 df_top_months_by_verses['Rank'] = df_top_months_by_verses['Verses'].rank(
     ascending = False, method = 'min').astype('int')
 df_top_months_by_verses['Rank and Month'] = '#'+df_top_months_by_verses[
     'Rank'].astype('str') + ': ' + df_top_months_by_verses[
-        'Local_Year'].astype('str') + '-' + df_top_months_by_verses[
-            'Local_Month'].astype('str')
+        'Local_Start_Year'].astype('str') + '-' + df_top_months_by_verses[
+            'Local_Start_Month'].astype('str')
 df_top_months_by_verses.reset_index(drop=True,inplace=True)
 
 df_top_months_by_verses
 
 # %%
 fig_top_months_by_verses = px.bar(df_top_months_by_verses, 
-x = 'Rank and Month', y = 'Verses')
+x = 'Rank and Month', y = 'Verses', text = 'Verses')
 fig_top_months_by_verses.update_xaxes(tickangle = 90)
 fig_top_months_by_verses.write_html('Analyses/top_months_by_verses.html')
 fig_top_months_by_verses.write_image(
     'Analyses/top_months_by_verses.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_months_by_verses
+
+# %% [markdown]
+# ## Performing similar analyses for hours and for 30-, 15-, and 10-minute blocks:
+
+# %%
+df_top_hours_by_characters = df_results.pivot_table(index = ['Local_Start_Date', 
+'Local_End_Date', 'Local_Start_Hour', 'Local_End_Hour'], values = 'Characters', 
+aggfunc = 'sum').reset_index().sort_values('Characters', ascending = False)
+df_top_hours_by_characters = df_top_hours_by_characters.query(
+"Local_Start_Date == Local_End_Date & \
+Local_Start_Hour == Local_End_Hour").head(100).copy()
+df_top_hours_by_characters['Hour'] = df_top_hours_by_characters[
+'Local_Start_Date'].astype('str') + ' ' + df_top_hours_by_characters[
+'Local_Start_Hour'].astype('str') 
+df_top_hours_by_characters
+
+# %%
+fig_top_hours_by_characters = px.bar(df_top_hours_by_characters, 
+x = 'Hour', y = 'Characters', text = 'Characters')
+fig_top_hours_by_characters.update_xaxes(type = 'category')
+fig_top_hours_by_characters.write_html('Analyses/top_hours_by_characters.html')
+fig_top_hours_by_characters.write_image(
+    'Analyses/top_hours_by_characters.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_hours_by_characters
+
+# %%
+df_top_30m_by_characters = df_results.pivot_table(index = ['Local_Start_Date', 
+'Local_End_Date', 'Local_Start_Hour', 'Local_End_Hour', 
+'Local_Start_30_Minute_Block', 'Local_End_30_Minute_Block'], 
+values = 'Characters', aggfunc = 'sum').reset_index().sort_values(
+'Characters', ascending = False)
+df_top_30m_by_characters = df_top_30m_by_characters.query(
+"Local_Start_Date == Local_End_Date & Local_Start_Hour == Local_End_Hour \
+& Local_Start_30_Minute_Block == Local_End_30_Minute_Block").head(100).copy()
+df_top_30m_by_characters['30-Minute Block'] = df_top_30m_by_characters[
+'Local_Start_Date'].astype('str') + ' ' + df_top_30m_by_characters[
+'Local_Start_Hour'].astype('str') + '_' + df_top_30m_by_characters[
+'Local_Start_30_Minute_Block'].astype('str')
+df_top_30m_by_characters
+
+# %%
+fig_top_30m_by_characters = px.bar(df_top_30m_by_characters, 
+x = '30-Minute Block', y = 'Characters', text = 'Characters')
+fig_top_30m_by_characters.update_xaxes(type = 'category')
+fig_top_30m_by_characters.write_html(
+'Analyses/top_30m_blocks_by_characters.html')
+fig_top_30m_by_characters.write_image(
+    'Analyses/top_30m_blocks_by_characters.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_30m_by_characters
+
+# %%
+df_top_15m_by_characters = df_results.pivot_table(index = [
+'Local_Start_Date', 'Local_End_Date', 'Local_Start_Hour', 'Local_End_Hour', 
+'Local_Start_15_Minute_Block', 'Local_End_15_Minute_Block'], 
+values = 'Characters', aggfunc = 'sum').reset_index().sort_values(
+'Characters', ascending = False)
+# print(len(df_top_15m_by_characters))
+df_top_15m_by_characters = df_top_15m_by_characters.query(
+"Local_Start_Date == Local_End_Date & Local_Start_Hour == Local_End_Hour & \
+Local_Start_15_Minute_Block == Local_End_15_Minute_Block").head(100).copy()
+df_top_15m_by_characters['15-Minute Block'] = df_top_15m_by_characters[
+'Local_Start_Date'].astype('str') + ' ' + df_top_15m_by_characters[
+'Local_Start_Hour'].astype('str') + '_' + df_top_15m_by_characters[
+'Local_Start_15_Minute_Block'].astype('str')
+# print(len(df_top_15m_by_characters))
+df_top_15m_by_characters
+
+# %%
+fig_top_15m_by_characters = px.bar(df_top_15m_by_characters, 
+x = '15-Minute Block', y = 'Characters', text = 'Characters')
+fig_top_15m_by_characters.update_xaxes(type = 'category')
+fig_top_15m_by_characters.write_html(
+'Analyses/top_15m_blocks_by_characters.html')
+fig_top_15m_by_characters.write_image(
+    'Analyses/top_15m_blocks_by_characters.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_15m_by_characters
+
+# %%
+df_top_10m_by_characters = df_results.pivot_table(index = ['Local_Start_Date', 
+'Local_End_Date', 'Local_Start_Hour', 'Local_End_Hour', 
+'Local_Start_10_Minute_Block', 'Local_End_10_Minute_Block'], 
+values = 'Characters', aggfunc = 'sum').reset_index().sort_values(
+'Characters', ascending = False)
+# print(len(df_top_10m_by_characters))
+df_top_10m_by_characters = df_top_10m_by_characters.query(
+"Local_Start_Date == Local_End_Date & Local_Start_Hour == Local_End_Hour \
+& Local_Start_10_Minute_Block == Local_End_10_Minute_Block").head(100).copy()
+df_top_10m_by_characters['10-Minute Block'] = df_top_10m_by_characters[
+'Local_Start_Date'].astype('str') + ' ' + df_top_10m_by_characters[
+'Local_Start_Hour'].astype('str') + '_' + df_top_10m_by_characters[
+'Local_Start_10_Minute_Block'].astype('str')
+# print(len(df_top_10m_by_characters))
+df_top_10m_by_characters
+
+# %%
+fig_top_10m_by_characters = px.bar(df_top_10m_by_characters, 
+x = '10-Minute Block', y = 'Characters', text = 'Characters')
+fig_top_10m_by_characters.update_xaxes(type = 'category')
+fig_top_10m_by_characters.write_html(
+'Analyses/top_10m_blocks_by_characters.html')
+fig_top_10m_by_characters.write_image(
+    'Analyses/top_10m_blocks_by_characters.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_10m_by_characters
 
 # %% [markdown]
 # # Analyzing WPM data:
@@ -1111,6 +1288,7 @@ df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(
     100).copy()
 df_top_100_wpm.insert(0, 'Rank', df_top_100_wpm['WPM'].rank(
     ascending = False, method = 'min').astype('int'))
+df_top_100_wpm['WPM_for_Chart'] = df_top_100_wpm['WPM'].round(3)
 # method = 'min' assigns the lowest rank to any rows that happen to have
 # the same WPM. See 
 # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rank.html
@@ -1118,19 +1296,33 @@ df_top_100_wpm.to_csv('Analyses/top_100_wpm.csv')
 df_top_100_wpm
 
 # %%
-fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM')
+fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM', 
+text = 'WPM_for_Chart')
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
 fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_100_wpm
 
 # %% [markdown]
-# Top 20 'Last 10 Average' values:
+# Top 'Last 10 Average' values:
 
 # %%
-df_top_20_last_10_avg_results = df_results.sort_values(
+df_top_last_10_avg_results = df_results.sort_values(
     'Last 10 Avg', ascending = False).head(20).copy()
-df_top_20_last_10_avg_results
+df_top_last_10_avg_results.insert(0, 'Rank', 
+df_top_last_10_avg_results['Last 10 Avg'].rank(ascending = False, 
+method = 'min').astype('int'))
+df_top_last_10_avg_results[
+'Last 10 Avg for Chart'] = df_top_last_10_avg_results['Last 10 Avg'].round(3)
+df_top_last_10_avg_results
+
+# %%
+fig_top_last_10_average_wpm = px.bar(df_top_last_10_avg_results, x = 'Rank', 
+y = 'Last 10 Avg', text = 'Last 10 Avg for Chart')
+fig_top_last_10_average_wpm.write_html('Analyses/top_last_10_average_wpm.html')
+fig_top_last_10_average_wpm.write_image('Analyses/top_last_10_average_wpm.png', 
+width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+fig_top_last_10_average_wpm
 
 # %% [markdown]
 # # Showing WPM results and moving averages by test number:
@@ -1175,18 +1367,18 @@ fig_wpm_histogram
 
 # %%
 df_results_by_month = df_results.pivot_table(
-    index = ['Local_Year', 'Local_Month'], values = ['Count', 'WPM'], 
-    aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
-# Enclosing the year/month in parentheses so that they won't be converted
+    index = ['Local_Start_Year', 'Local_Start_Month'], values = [
+'Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_month['WPM_for_Label'] = df_results_by_month['WPM'].round(3)
 df_results_by_month['Year/Month'] = df_results_by_month[
-    'Local_Year'].astype('str') + '-' + df_results_by_month[
-    'Local_Month'].astype('str')
+    'Local_Start_Year'].astype('str') + '-' + df_results_by_month[
+    'Local_Start_Month'].astype('str')
 df_results_by_month.to_csv('Analyses/results_by_month.csv')
 df_results_by_month
 
 # %%
 fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', 
-y = 'WPM', color = 'Count')
+y = 'WPM', color = 'Count', text = 'WPM_for_Label')
 fig_results_by_month.update_xaxes(type = 'category') # This line, based on
 # Pracheta's response at https://stackoverflow.com/a/64424308/13097194,
 # updates the axes to show the date-month pairs as strings rather than 
@@ -1201,13 +1393,15 @@ fig_results_by_month
 # ## Evaluating average results by hour of day:
 
 # %%
-df_results_by_hour = df_results.pivot_table(index = ['Local_Hour'], 
-values = ['Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_hour = df_results.pivot_table(index = ['Local_Start_Hour'], 
+values = ['Count', 'WPM'], 
+aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_hour['WPM_for_Label'] = df_results_by_hour['WPM'].round(3)
 df_results_by_hour
 
 # %%
-fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Hour', 
-y = 'WPM', color = 'Count')
+fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Start_Hour', 
+y = 'WPM', color = 'Count', text = 'WPM_for_Label')
 fig_results_by_hour.write_html('Analyses/results_by_hour.html')
 fig_results_by_hour.write_image('Analyses/results_by_hour.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -1220,8 +1414,9 @@ fig_results_by_hour
 df_wpm_by_book = df_results.pivot_table(index = 'Book', values = 'WPM', 
 aggfunc = ['count', 'mean'], margins = True, 
 margins_name = 'Total').reset_index()
-df_wpm_by_book.columns = 'Book', 'Tests', 'Mean WPM'
-df_wpm_by_book.sort_values('Mean WPM', ascending = False, inplace = True)
+df_wpm_by_book.columns = 'Book', 'Tests', 'WPM'
+df_wpm_by_book['WPM_for_Label'] = df_wpm_by_book['WPM'].round(3)
+df_wpm_by_book.sort_values('WPM', ascending = False, inplace = True)
 df_wpm_by_book.reset_index(drop=True,inplace=True)
 df_wpm_by_book.to_csv('Analyses/mean_wpm_by_book.csv')
 
@@ -1237,11 +1432,11 @@ df_wpm_by_book
 # a color so as not to interfere with the color gradient.
 
 # Retrieving the total mean WPM value in df_wpm_by_book:
-total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['Mean WPM']
+total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['WPM']
 total_mean_wpm
 
 fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), 
-x = 'Book', y = 'Mean WPM', color = 'Tests')
+x = 'Book', y = 'WPM', color = 'Tests', text = 'WPM_for_Label')
 fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, 
 x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm)
 # See https://plotly.com/python/shapes/ for the add_shape() code.
