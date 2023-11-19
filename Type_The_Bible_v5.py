@@ -8,6 +8,19 @@
 # \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files.
 
 # %% [markdown]
+# # Instructions for getting started:
+# 
+# If you have just downloaded this game, you'll want to create new copies of the **results.csv** and **WEB_Catholic_Version_for_game_updated.csv** files. That way, the files will show your results and progress, not mine. You can do so using the following steps:
+# 
+# 1. Rename the existing versions of these files as **results_sample.csv** and **WEB_Catholic_Version_for_game_updated_sample.csv**.
+# 
+# 2. Make a copy of **blank_results_file.csv** and rename it **results.csv**.
+# 
+# 3. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
+# 
+# You're now ready to play!
+
+# %% [markdown]
 # ## More documentation to come!
 
 # %% [markdown]
@@ -16,6 +29,8 @@
 # * Improve chart formatting (e.g. add titles, legend names, etc.)
 # * Add in more documentation
 # * Revise verse numbering for chapters that have lots of verses grouped together. (You can use the PDF version of the WEB as a guide for this)
+# * Create a 'No Errors' field (only possible with v2) so that you can track which tests were typed without any errors.
+# * Add in percentile and last-top-10 results within the report that comes after each test. Make sure this won't fail if the results.csv file starts out blank.
 
 # %%
 import pandas as pd
@@ -67,6 +82,9 @@ df_results
 # %%
 for column in ['Local_Start_Time', 'UTC_Start_Time']:
     df_results[column] = pd.to_datetime(df_results[column])
+df_results['WPM'] = df_results['WPM'].astype('float') # Prevents a glitch
+# that can be caused when this column is stored as an object. The WPM
+# column should only be in object format when the results table is blank.
 df_results
 
 # %%
@@ -119,7 +137,7 @@ df_Bible
 def select_verse():
     print("Select a verse to type! Enter 0 to receive a random verse\n\
 or enter a verse number (see 'Verse_Order column of\n\
-the WEB_Catholic_Version.csv spreadsheet for a list of numbers to enter\n\
+the WEB_Catholic_Version.csv spreadsheet for a list of numbers to enter)\n\
 to select a specific verse.\n\
 You can also enter -2 to receive a random verse that you haven't yet typed\n\
 or -3 to choose the first Bible verse that hasn't yet been typed.")
@@ -199,9 +217,7 @@ def run_typing_test(verse_number, results_table, test_type = 'v2'):
     # I moved these introductory comments out of the following while loop
     # in order to simplify the dialogue presented to users during retest
     # attempts.
-    print("Welcome to the typing test! Note that you can exit a test in \
-progress by typing 'exit' and then hitting Enter.")
-    print(f"\nYour verse to type is {book} \
+    print(f"Welcome to the typing test! Your verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_number_within_Bible} \
 within the Bible .csv file).\n")
     if run_on_notebook == False:
@@ -258,7 +274,7 @@ within the Bible .csv file).\n")
             # a character was mistyped until the very end, which can get
             # frustrating. Therefore, I've now added in a new version
             # of the test (called 'v2') that can be used instead. 
-
+            no_mistakes = np.NaN
             local_start_time = pd.Timestamp.now()
             utc_start_time = pd.Timestamp.now(timezone.utc)
 
@@ -291,6 +307,9 @@ within the Bible .csv file).\n")
             # make it cross-platform, however.
             verse_response = '' # This string will store the player's 
             # response.
+            no_mistakes = 1 # This flag will get set to 0 if the player makes
+            # a mistake. If it remains at 1 throughout the race, then
+            # a mistake-free race will get logged in results_table.
             
             local_start_time = pd.Timestamp.now()
             utc_start_time = pd.Timestamp.now(timezone.utc)
@@ -329,6 +348,8 @@ within the Bible .csv file).\n")
                 if verse[0:len(verse_response)] == verse_response:
                     text_color = Fore.GREEN
                 else:
+                    no_mistakes = 0 # This flag will remain at 0 for the 
+                    # rest of the race.
                     text_color = Fore.RED 
                 
                 # Printing the player's response so far: (Note that 
@@ -411,9 +432,6 @@ was typed '{verse_response_words[i]}'.")
     # then dividing by 5 to convert from characters to words.
     wpm
 
-    print(f"Your CPS and WPM were {round(cps, 3)} and {round(wpm, 3)}, \
-respectively.")
-
     # Creating a single-row DataFrame that stores the player's results:
     df_latest_result = pd.DataFrame(index = [
         len(results_table)+1], data = {'Unix_Start_Time':typing_start_time, 
@@ -423,6 +441,7 @@ respectively.")
     'Seconds':typing_time, 
     'CPS': cps,
     'WPM':wpm,
+    'Mistake_Free_Test':no_mistakes,
     'Book': book,
     'Chapter': chapter,
     'Verse #': verse_number_within_chapter,
@@ -433,11 +452,44 @@ respectively.")
 
     # Adding this new row to results_table:
     results_table = pd.concat([results_table, df_latest_result])
-    
     # Note: I could also have used df.at or df.iloc to add a new row
     # to df_latest_result, but I chose a pd.concat() setup in order to ensure
     # that the latest result would never overwrite an earlier result.
     
+
+    # Rank and percentile data needs to be recalculated after each test,
+    # as later results can affect the rank and percentile of earlier results.
+    # I could compute these statistics later, but calculating them here
+    # allows the player to view his/her statistics after each test.
+
+    results_table['WPM_Rank'] = results_table['WPM'].rank(
+    ascending = False, method = 'min').astype('int')
+    results_table['WPM_Percentile'] = results_table['WPM'].rank(pct=True)*100
+    latest_rank = results_table.iloc[-1]['WPM_Rank']
+    # Note: These percentile results may differ from the results
+    # calculated by np.quartile later in this function, likely a result of
+    # different calculation methodologies. These differences should narrow
+    # as more tests are completed.
+
+    latest_percentile = results_table.iloc[-1]['WPM_Percentile'].round(3)
+    number_of_tests = len(results_table)
+    last_10_avg = results_table['WPM'].rolling(10).mean().iloc[-1]
+    
+    # The player's rolling 10-race average will be NaN until he/she has
+    # completed 10 tests. Therefore, the following if statement will 
+    # return a blank last 10 races report unless at least 10 tests
+    # are present in results_table.
+    if len(results_table) >= 10:
+        last_10_report = f' You have averaged \
+{last_10_avg.round(3)} WPM over your last 10 tests.' # The space
+    # space before 'You' separates this text from the rest of
+    # the print statement below.
+    else:
+        last_10_report = ''
+
+    print(f"Your CPS and WPM were {round(cps, 3)} and {round(wpm, 3)}, \
+respectively. Your WPM percentile was {latest_percentile} \
+({latest_rank} out of {number_of_tests} tests).{last_10_report}")  
 
     # Updating df_Bible to store the player's results: (This will allow the
     # player to track how much of the Bible he/she has typed so far)
@@ -456,189 +508,6 @@ respectively.")
         df_Bible.at[verse_number-1, 'Fastest_WPM'] = wpm
 
     return results_table
-
-
-# %% [markdown]
-# Alternative version of run_typing_test that supports only version v2:
-
-# %%
-# def run_typing_test(verse_number, results_table, test_type = 'v2'):
-#     '''This function calculates how quickly the user types the characters
-#     passed to the Bible verse represented by verse_number, then saves those 
-#     results to the DataFrame passed to results_table.'''
-
-#     # Retrieving the verse to be typed:
-#     # The index begins at 0 whereas the list of verse numbers begins at 1,
-#     # so we'll need to subtract 1 from verse_number in order to obtain
-#     # the verse's index.
-#     verse = df_Bible.iloc[verse_number-1]['Verse']
-#     book = df_Bible.iloc[verse_number-1]['Book_Name']
-#     chapter = df_Bible.iloc[verse_number-1]['Chapter_Name']
-#     verse_number_within_chapter = df_Bible.iloc[verse_number-1]['Verse_#']
-#     verse_number_within_Bible = df_Bible.iloc[
-#         verse_number-1]['Verse_Order']
-    
-#     print("Welcome to the typing test! Note that you can exit a test in \
-# progress by typing 'exit' and then hitting Enter.")
-#     print(f"\nYour verse to type is {book} \
-# {chapter}:{verse_number_within_chapter} (verse {verse_number_within_Bible} \
-# within the Bible .csv file).\n")
-#     print("Press any key to begin typing!")
-#     print(f"Here is the verse:\n\n{verse}") 
-
-#     # time.sleep(3) # I realized that players could actually begin typing
-#     # during this sleep period, thus allowing them to complete the test
-#     # faster than intended. Therefore, I'm now having the test start
-#     # after the player hits a character of his/her choice. getch()
-#     # accomplishes this task well.
-#     # A simpler approach would be to add in an additional input block
-#     # and have the player begin after he/she presses Enter, but that would
-#     # cause the player's right hand to leave the default home row position,
-#     # which could end up slowing him/her down. getch() allows any character
-#     # to be pressed (such as the space bar) and thus avoids this issue.
-
-#     start_character = getch() # See https://github.com/joeyespo/py-getch
-#     print("Start!")      
-
-#     # This version of the test checks the player's input after
-#     # each character is typed. If the player's input is correct
-#     # so far, the text will be highlighted green; otherwise,
-#     # it will be highlighted red. (This allows the player to be 
-#     # notified of an error without the need for a line break
-#     # in the console, which could prove distracting.)
-#     # This function has been tested on Windows, but not yet 
-#     # on Mac or Linux. The use of the Colorama library should
-#     # make it cross-platform, however.
-#     verse_response = '' # This string will store the player's 
-#     # response.
-#     verse_response_with_newlines = ''
-#     local_start_time = datetime.now().isoformat()
-#     utc_start_time = datetime.now(timezone.utc).isoformat()
-#     typing_start_time = time.time()
-#     while True: # This while loop allows the player to enter
-#         # multiple characters.
-#         # to allow the player to enter 
-#         character = getch() # getch() allows each character to be 
-#         # checked, making it easier to identify mistyped words.
-#         if character == b'\x08': 
-#             # This will return True if the user hits backspace.
-#             # In this case, we'll want to remove the latest character
-#             # from verse_response in order to keep that value
-#             # in sync with what the player sees on the screen.
-#             # Calling print(character) after
-#             # hitting backspace revealed that b'\x08' was the code
-#             # associated with the backspace key. 
-#             verse_response = verse_response[:-1] # Trims the last
-#             # value off verse_response.
-#             verse_response_with_newlines = verse_response_with_newlines[:-1]
-#         elif (character == b'\r'): 
-#             # Returns True if the user hits Enter.
-#             verse_response_with_newlines = '' # Resets the view to avoid a glitch
-#             # that can occur when more than one line is present in the output.
-#             print('\r') # Moves the cursor one line down so that the player 
-#             # doesn't overwrite his/her previous output in the process
-#             # of writing the new line
-#         elif character == b'`':
-#             print(Style.RESET_ALL) # Resets the color of the text.
-#             # See https://pypi.org/project/colorama/
-#             print("Exiting typing test.")
-#             return results_table # Exits the function without saving the 
-#             # current test to results_table or df_Bible. This function has
-#             # been updated to work with both versions of the typing
-#             # test.
-#         else: 
-#             # The following line adds the latest character typed
-#             # to verse_response.
-#             verse_response += character.decode('ascii') 
-#             verse_response_with_newlines += character.decode('ascii') 
-#             # See https://stackoverflow.com/questions/17615414/how-to-convert-binary-string-to-normal-string-in-python3
-
-#         # Determining which color to use for the text:
-#         if verse[0:len(verse_response)] == verse_response:
-#             text_color = Fore.GREEN
-#         else:
-#             text_color = Fore.RED 
-        
-#         # Printing the player's response so far: (Note that 
-#         # verse_response gets printed instead of the last character.
-#         # The addition of 'end = "\r", flush = True' to the print()
-#         # call allows characters to get displayed immediately
-#         # after one another rather than on separate lines.
-#         print(f"{text_color}{verse_response_with_newlines}", end = "\r", flush = True)
-#         # The 'end' and 'flush' arguments are 
-#         # Based on https://stackoverflow.com/a/69030559/13097194
-#         # For the use of Colorama to produce red and green text, see
-#         # https://pypi.org/project/colorama/
-#         # and https://stackoverflow.com/a/3332860/13097194
-
-#         if verse_response == verse: # Note that, unlike with version
-#             # v1, the player does not need to hit 'Enter' in order
-#             # to end the typing test after writing a completed
-#             # verse. This should speed up his/her WPM as a result.
-#             typing_end_time = time.time()
-#             typing_time = typing_end_time - typing_start_time
-#             print("\nSuccess!")
-#             print(Style.RESET_ALL)
-#             # Calculating typing statistics and storing them within a single-row
-#             # DataFrame:
-
-#             cps = len(verse) / typing_time # Calculating characters per second
-#             wpm = cps * 12 # Multiplying by 60 to convert from characters to minutes, 
-#             # then dividing by 5 to convert from characters to words.
-#             wpm
-
-#             print(f"Your CPS and WPM were {round(cps, 3)} and {round(wpm, 3)}, \
-# respectively.")
-
-#             # Creating a single-row DataFrame that stores the player's results:
-#             df_latest_result = pd.DataFrame(index = [
-#                 len(results_table)+1], data = {'Unix_Start_Time':typing_start_time, 
-#             'Local_Start_Time':local_start_time,
-#             'UTC_Start_Time':utc_start_time,
-#             'Characters':len(verse),
-#             'Seconds':typing_time, 
-#             'CPS': cps,
-#             'WPM':wpm,
-#             'Book': book,
-#             'Chapter': chapter,
-#             'Verse #': verse_number_within_chapter,
-#             'Verse':verse, 
-#             'Verse_Order':verse_number_within_Bible})
-#             df_latest_result.index.name = 'Test_Number'
-#             df_latest_result
-
-#             # Adding this new row to results_table:
-#             results_table = pd.concat([results_table, df_latest_result])\
-            
-#             # Note: I could also have used df.at or df.iloc to add a new row
-#             # to df_latest_result, but I chose a pd.concat() setup in order to ensure
-#             # that the latest result would never overwrite an earlier result.
-            
-
-#             # Updating df_Bible to store the player's results: (This will allow the
-#             # player to track how much of the Bible he/she has typed so far)
-#             df_Bible.at[verse_number-1, 'Typed'] = 1 # Denotes that this verse
-#             # has now ben typed
-#             df_Bible.at[verse_number-1, 'Tests'] += 1 # Keeps track of how 
-#             # many times this verse has been typed
-#             fastest_wpm = df_Bible.at[verse_number-1, 'Fastest_WPM']
-#             if ((pd.isna(fastest_wpm) == True) | (wpm > fastest_wpm)): 
-#                 # In these cases, we should replace the pre-existing Fastest_WPM value
-#                 # with the WPM the player just achieved.
-#                 # I found that 5 > np.NaN returned False, so if I only checked for
-#                 # wpm > fastest_wpm, blank fastest_wpm values would never get overwritten.
-#                 # Therefore, I chose to also check for NaN values 
-#                 # in the above if statement.
-#                 df_Bible.at[verse_number-1, 'Fastest_WPM'] = wpm
-
-#             return results_table
-
-#         if len(verse_response_with_newlines) == 100:
-#             verse_response_with_newlines = '' # Resets the view to avoid a glitch
-#             # that can occur when more than one line is present in the output.
-#             print('\r') # Moves the cursor one line down so that the player 
-#             # doesn't overwrite his/her previous output in the process
-#             # of writing the new line
 
 
 # %%
@@ -741,17 +610,34 @@ def run_game(results_table):
     # The game will now share the player's progress for the current day:
     print(calculate_current_day_results(results_table))
 
-    print("To switch to a simpler typing test method that doesn't \
+    if run_on_notebook == True: # I haven't been able to get version
+        # v2 of the typing test to work within a Jupyter notebook, 
+        # so the following line forces notebook-based runs to use version v1.
+        typing_test_version = 'v1'
+    else: # In this case, the user gets to choose whether to to use 
+        # v1 or v2.
+        print("To switch to a simpler typing test method that doesn't \
 check your input as you type, enter v1. Otherwise, to stick with the \
 recommended version, press Enter.")
-    response = input()
-    if (response == 'v1') or (run_on_notebook == True): # Version 2 likely
-        # won't work within Jupyter notebooks, 
-        # so the version will always be kept as v1 for notebook users.
-        typing_test_version = 'v1'
-    else:
-        typing_test_version = 'v2'
+        response = input()
+        if (response == 'v1') or (run_on_notebook == True): # Version 2 likely
+            # won't work within Jupyter notebooks, 
+            # so the version will always be kept as v1 for notebook users.
+            typing_test_version = 'v1'
+        else:
+            typing_test_version = 'v2'
 
+    # The method for exiting a test in progress differs by typing test
+    # version, so the game will now explain how the player can exit out of 
+    # his/her version of the test.
+    if typing_test_version == 'v1':
+        print("Version 1 selected. Note that you can exit a test in \
+progress by typing 'exit' and then hitting Enter.")
+    if typing_test_version == 'v2':
+        print("Version 2 selected. Note that you can exit a test in progress \
+by hitting the ` (backtick) key.")
+              
+              
 
     verse_number = select_verse()
     
@@ -773,6 +659,19 @@ recommended version, press Enter.")
 
 # %%
 df_results = run_game(results_table = df_results)
+
+# %%
+df_results
+
+# %% [markdown]
+# If df_results is blank (e.g. because the player exited out of his/her first typing test during his/her first game), some of the following code will likely crash, because they are expecting results to be present within df_results. Therefore, the program will exit out early instead of continuing on.
+
+# %%
+if len(df_results) == 0:
+    print("No results have been entered, so there is nothing to save or \
+analyze. Exiting program in 5 seconds.")
+    time.sleep(5) # Allows the user to view the above message
+    raise SystemExit # See https://stackoverflow.com/a/19747562/13097194
 
 # %%
 # Updating certain df_Bible columns to reflect new results:
@@ -1064,6 +963,8 @@ df_top_dates_by_characters['Rank and Date'] = '#'+df_top_dates_by_characters[
     'Rank'].astype('str') + ': ' + df_top_dates_by_characters[
         'Local_Start_Date'].astype('str')
 df_top_dates_by_characters.reset_index(drop=True,inplace=True)
+df_top_dates_by_characters.to_csv(
+    'Analyses/top_dates_by_characters.csv', index = False)
 df_top_dates_by_characters
 
 # %%
@@ -1090,6 +991,7 @@ df_top_dates_by_verses['Rank and Date'] = '#'+df_top_dates_by_verses[
     'Rank'].astype('str') + ': ' + df_top_dates_by_verses[
         'Local_Start_Date'].astype('str')
 df_top_dates_by_verses.reset_index(drop=True,inplace=True)
+df_top_dates_by_verses.to_csv('Analyses/top_dates_by_verses.csv', index = False)
 df_top_dates_by_verses
 
 # %%
@@ -1122,7 +1024,7 @@ df_top_months_by_characters['Rank and Month'] = '#'+df_top_months_by_characters[
         'Local_Start_Year'].astype('str') + '-' + df_top_months_by_characters[
             'Local_Start_Month'].astype('str')
 df_top_months_by_characters.reset_index(drop=True,inplace=True)
-
+df_top_months_by_characters.to_csv('Analyses/top_months_by_characters.csv', index = False)
 df_top_months_by_characters
 
 # %%
@@ -1154,7 +1056,7 @@ df_top_months_by_verses['Rank and Month'] = '#'+df_top_months_by_verses[
         'Local_Start_Year'].astype('str') + '-' + df_top_months_by_verses[
             'Local_Start_Month'].astype('str')
 df_top_months_by_verses.reset_index(drop=True,inplace=True)
-
+df_top_months_by_verses.to_csv('Analyses/top_months_by_verses.csv', index = False)
 df_top_months_by_verses
 
 # %%
@@ -1180,6 +1082,7 @@ Local_Start_Hour == Local_End_Hour").head(100).copy()
 df_top_hours_by_characters['Hour'] = df_top_hours_by_characters[
 'Local_Start_Date'].astype('str') + ' ' + df_top_hours_by_characters[
 'Local_Start_Hour'].astype('str') 
+df_top_hours_by_characters.to_csv('Analyses/top_hours_by_characters.csv', index = False)
 df_top_hours_by_characters
 
 # %%
@@ -1205,6 +1108,7 @@ df_top_30m_by_characters['30-Minute Block'] = df_top_30m_by_characters[
 'Local_Start_Date'].astype('str') + ' ' + df_top_30m_by_characters[
 'Local_Start_Hour'].astype('str') + '_' + df_top_30m_by_characters[
 'Local_Start_30_Minute_Block'].astype('str')
+df_top_30m_by_characters.to_csv('Analyses/top_30m_by_characters.csv', index = False)
 df_top_30m_by_characters
 
 # %%
@@ -1233,6 +1137,7 @@ df_top_15m_by_characters['15-Minute Block'] = df_top_15m_by_characters[
 'Local_Start_Hour'].astype('str') + '_' + df_top_15m_by_characters[
 'Local_Start_15_Minute_Block'].astype('str')
 # print(len(df_top_15m_by_characters))
+df_top_15m_by_characters.to_csv('Analyses/top_15m_by_characters.csv', index = False)
 df_top_15m_by_characters
 
 # %%
@@ -1261,6 +1166,7 @@ df_top_10m_by_characters['10-Minute Block'] = df_top_10m_by_characters[
 'Local_Start_Hour'].astype('str') + '_' + df_top_10m_by_characters[
 'Local_Start_10_Minute_Block'].astype('str')
 # print(len(df_top_10m_by_characters))
+df_top_10m_by_characters.to_csv('Analyses/top_10m_by_characters.csv', index = False)
 df_top_10m_by_characters
 
 # %%
@@ -1288,7 +1194,6 @@ df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(
     100).copy()
 df_top_100_wpm.insert(0, 'Rank', df_top_100_wpm['WPM'].rank(
     ascending = False, method = 'min').astype('int'))
-df_top_100_wpm['WPM_for_Chart'] = df_top_100_wpm['WPM'].round(3)
 # method = 'min' assigns the lowest rank to any rows that happen to have
 # the same WPM. See 
 # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rank.html
@@ -1297,7 +1202,7 @@ df_top_100_wpm
 
 # %%
 fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM', 
-text = 'WPM_for_Chart')
+text_auto = '.6s')
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
 fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -1307,25 +1212,31 @@ fig_top_100_wpm
 # Top 'Last 10 Average' values:
 
 # %%
-df_top_last_10_avg_results = df_results.sort_values(
+if len(df_results) >= 10: # If fewer than 10 tests are present in df_results,
+    # there won't be anything to graph (and the following code will raise
+    # an error), so this section should be skipped.
+    df_top_last_10_avg_results = df_results.sort_values(
     'Last 10 Avg', ascending = False).head(20).copy()
-df_top_last_10_avg_results.insert(0, 'Rank', 
-df_top_last_10_avg_results['Last 10 Avg'].rank(ascending = False, 
-method = 'min').astype('int'))
-df_top_last_10_avg_results[
-'Last 10 Avg for Chart'] = df_top_last_10_avg_results['Last 10 Avg'].round(3)
-df_top_last_10_avg_results
+    df_top_last_10_avg_results.insert(0, 'Rank', 
+    df_top_last_10_avg_results['Last 10 Avg'].rank(ascending = False, 
+    method = 'min').astype('int'))
+    df_top_last_10_avg_results.to_csv('Analyses/top_last_10_avg_results.csv', index = False)
+    df_top_last_10_avg_results
 
 # %%
-fig_top_last_10_average_wpm = px.bar(df_top_last_10_avg_results, x = 'Rank', 
-y = 'Last 10 Avg', text = 'Last 10 Avg for Chart')
-fig_top_last_10_average_wpm.write_html('Analyses/top_last_10_average_wpm.html')
-fig_top_last_10_average_wpm.write_image('Analyses/top_last_10_average_wpm.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_top_last_10_average_wpm
+if len(df_results) >= 10:
+    fig_top_last_10_average_wpm = px.bar(df_top_last_10_avg_results, x = 'Rank', 
+    y = 'Last 10 Avg', text_auto = '.6s')
+    fig_top_last_10_average_wpm.write_html('Analyses/top_last_10_average_wpm.html')
+    fig_top_last_10_average_wpm.write_image('Analyses/top_last_10_average_wpm.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+    fig_top_last_10_average_wpm
 
 # %% [markdown]
 # # Showing WPM results and moving averages by test number:
+
+# %%
+df_results
 
 # %%
 fig_df_results_by_test_number = px.line(df_results, x = df_results.index, 
@@ -1369,16 +1280,15 @@ fig_wpm_histogram
 df_results_by_month = df_results.pivot_table(
     index = ['Local_Start_Year', 'Local_Start_Month'], values = [
 'Count', 'WPM'], aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
-df_results_by_month['WPM_for_Label'] = df_results_by_month['WPM'].round(3)
 df_results_by_month['Year/Month'] = df_results_by_month[
     'Local_Start_Year'].astype('str') + '-' + df_results_by_month[
     'Local_Start_Month'].astype('str')
-df_results_by_month.to_csv('Analyses/results_by_month.csv')
+df_results_by_month.to_csv('Analyses/results_by_month.csv', index = False)
 df_results_by_month
 
 # %%
 fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', 
-y = 'WPM', color = 'Count', text = 'WPM_for_Label')
+y = 'WPM', color = 'Count', text_auto = '.6s')
 fig_results_by_month.update_xaxes(type = 'category') # This line, based on
 # Pracheta's response at https://stackoverflow.com/a/64424308/13097194,
 # updates the axes to show the date-month pairs as strings rather than 
@@ -1396,12 +1306,12 @@ fig_results_by_month
 df_results_by_hour = df_results.pivot_table(index = ['Local_Start_Hour'], 
 values = ['Count', 'WPM'], 
 aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
-df_results_by_hour['WPM_for_Label'] = df_results_by_hour['WPM'].round(3)
+df_results_by_hour.to_csv('Analyses/results_by_hour.csv')
 df_results_by_hour
 
 # %%
 fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Start_Hour', 
-y = 'WPM', color = 'Count', text = 'WPM_for_Label')
+y = 'WPM', color = 'Count', text_auto = '.6s')
 fig_results_by_hour.write_html('Analyses/results_by_hour.html')
 fig_results_by_hour.write_image('Analyses/results_by_hour.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -1415,11 +1325,9 @@ df_wpm_by_book = df_results.pivot_table(index = 'Book', values = 'WPM',
 aggfunc = ['count', 'mean'], margins = True, 
 margins_name = 'Total').reset_index()
 df_wpm_by_book.columns = 'Book', 'Tests', 'WPM'
-df_wpm_by_book['WPM_for_Label'] = df_wpm_by_book['WPM'].round(3)
 df_wpm_by_book.sort_values('WPM', ascending = False, inplace = True)
 df_wpm_by_book.reset_index(drop=True,inplace=True)
 df_wpm_by_book.to_csv('Analyses/mean_wpm_by_book.csv')
-
 df_wpm_by_book
 
 
@@ -1436,7 +1344,7 @@ total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['WPM']
 total_mean_wpm
 
 fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), 
-x = 'Book', y = 'WPM', color = 'Tests', text = 'WPM_for_Label')
+x = 'Book', y = 'WPM', color = 'Tests', text_auto = '.6s')
 fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, 
 x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm)
 # See https://plotly.com/python/shapes/ for the add_shape() code.
@@ -1449,6 +1357,51 @@ fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920,
 height = 1080, engine = 'kaleido', scale = 2)
 fig_mean_wpm_by_book
 
+
+# %% [markdown]
+# ## Comparing mean WPM for error-free and non-error free tests:
+
+# %%
+# We'll only create the graph if there is at least one mistake-free
+# result and one result with errors. (Otherwise, we won't be able to
+# compare these two outcomes.)
+if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
+    len(df_results.query("Mistake_Free_Test == 1")) >= 1):
+    df_wpm_by_mistake_free_status = df_results.pivot_table(index = 'Mistake_Free_Test', values = 'WPM', aggfunc = 'mean').reset_index()
+    df_wpm_by_mistake_free_status['Mistake_Free_Test'].replace({0:'No', 1:'Yes'}, inplace = True)
+    df_wpm_by_mistake_free_status.to_csv('Analyses/wpm_by_mistake_free_status.csv', index = False)
+    df_wpm_by_mistake_free_status
+
+# %%
+# We'll only create the graph if there is at least one mistake-free
+# result and one result with errors. (Otherwise, we won't be able
+# to compare these two outcomes.)
+if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
+    len(df_results.query("Mistake_Free_Test == 1")) >= 1):
+    fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s')
+    fig_mean_wpm_by_book.write_html('Analyses/mean_wpm_by_mistake_free_status.html')
+    fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
+    height = 1080, engine = 'kaleido', scale = 2)
+    fig_wpm_by_mistake_free_status
+
+# %%
+df_wpm_by_percentile = df_results['WPM'].quantile(q = np.arange(0, 1.05, 0.05)).transpose().reset_index()
+df_wpm_by_percentile.columns = ['Percentile', 'WPM']
+df_wpm_by_percentile['Percentile'] = (
+df_wpm_by_percentile['Percentile']*100).astype('int')
+# Some of the WPM values had additional decimal values (e.g. 15.000000000000002,
+# might currently have additional decimal values, so rounding them as integers
+# helps simplify them.
+df_wpm_by_percentile.to_csv('Analyses/wpm_by_percentile.csv', index = False)
+df_wpm_by_percentile
+
+# %%
+fig_wpm_by_percentile = px.bar(df_wpm_by_percentile, x = 'Percentile', y = 'WPM', text_auto = '.6s')
+fig_wpm_by_percentile.update_xaxes(type = 'category')
+fig_wpm_by_percentile.write_html('Analyses/wpm_by_percentile.html')
+fig_wpm_by_percentile.write_image('Analyses/wpm_by_percentile.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+fig_wpm_by_percentile
 
 # %%
 analysis_end_time = time.time()

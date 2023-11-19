@@ -29,8 +29,14 @@ print(verse)
 
 verse_response = '' # This string will store the player's 
 # response.
-local_start_time = datetime.now().isoformat()
-utc_start_time = datetime.now(timezone.utc).isoformat()
+no_mistakes = 1 # This flag will get set to 0 if the player makes
+# a mistake. If it remains at 1 throughout the race, then
+# a mistake-free race will get logged in results_table.
+previous_line_count = 1
+
+local_start_time = pd.Timestamp.now()
+utc_start_time = pd.Timestamp.now(timezone.utc)
+
 typing_start_time = time.time()
 while True: # This while loop allows the player to enter
     # multiple characters.
@@ -49,57 +55,116 @@ while True: # This while loop allows the player to enter
         # value off verse_response.
     elif character == b'`':
         print(Style.RESET_ALL) # Resets the color of the text.
+        verse_response += character.decode('ascii') # The presence
+        # of this character within verse_response will instruct
+        # the program to exit the user out of this test later on.
         # See https://pypi.org/project/colorama/
         break
     else: 
         # The following line adds the latest character typed
         # to verse_response.
-        verse_response += character.decode('ascii')  
-        # See https://stackoverflow.com/questions/17615414/how-to-convert-binary-string-to-normal-string-in-python3
+        try:
+            verse_response += character.decode('ascii')  
+            # See https://stackoverflow.com/questions/17615414/how-to-convert-binary-string-to-normal-string-in-python3
+        except: # Keys that fall out of the ascii subset, such as 
+            # arrow keys, would cause the above line to crash. Therefore,
+            # when the above line fails to work, the following 'continue'
+            # statement will allow the program to ignore the key and move
+            # back to the beginning of the loop.
+            continue
 
     # Determining which color to use for the text:
     if verse[0:len(verse_response)] == verse_response:
         text_color = Fore.GREEN
     else:
+        no_mistakes = 0 # This flag will remain at 0 for the 
+        # rest of the race.
         text_color = Fore.RED 
     
-    # Printing the player's response so far: (Note that 
-    # verse_response gets printed instead of the last character.)
+    # Printing the player's response so far: 
+    
+    # This process will involve printing the entirety of verse_response
+    # after each character is pressed than just the most recent character. 
+    # This code is more complex than a regular print statement, but it has
+    # several advantages:
+    # 1. It allows the player to quickly determine when a typo has 
+    # occurred (as the text will show up in red rather than in green).
+    # 2. It supports the use of backspace to correct responses on 
+    # previous lines. (I wasn't able to navigate to a previous line 
+    # using backspace when printing single characters at a time.)
+    # 3. It allows the cursor to always appear to the right of the most
+    # recent character. If the latest typed line takes up the entire
+    # width of the console, the cursor will appear on the left of 
+    # the following line.
+    # The development of this code involved a decent amount of trial and 
+    # error, but I'll try to explain the function of each line in order to
+    # make the final result more intuitive.
 
-    # The addition of 'end = "\r", which comes from Sencer H at
-    #  https://stackoverflow.com/a/69030559/13097194,
-    #  allows characters to get 
-    # displayed immediately
-    # after one another rather than on separate lines. It also
-    # prevents a new line from appearing whenever the user 
-    # types an entry.
 
-    line_count = ((len(verse_response)-1) // column_width) + 1
-    # Calculates the number of lines that are 
-    # being displayed so far. 
+    line_count = ((len(verse_response)) // column_width) + 1
+    # Calculates the number of lines on which the player's
+    # response appears. The inclusion of the max() function ensures
+    # that line_count will always be at least 1.
+    # 1 is added to verse_response because, if the response has extended
+    # to the right side of the terminal, another line will get added
+    # in (via code below) to make room for the cursor. Thus, line_count
+    # needs to be incremented by 1 in that case to reflect the terminal's
+    # output.
 
-    up_command = f"\033[{line_count}A"
-    # This value, based on Richard's response at
+    # The following code adjusts to changes in the response's line count.
+    # If the line count goes up (as indicated by line_count's exceeding
+    # previous_line_count), the response printout will be preceded
+    # by a newline so that more space is available to print the longer
+    # text. If the line count goes down (e.g. due to a backspace),
+    # the the printout will be preceded by an up cursor statement
+    # since less space will be needed to print the line.
+    if line_count > previous_line_count:
+        line_change_shift_command = '\n'
+    elif line_count < previous_line_count: 
+        line_change_shift_command = "\033[A"
+        # "\033[A" is an ANSI escape code that moves the cursor 
+        # up by one line. See
+        # at https://pypi.org/project/colorama/
+    else: # No command is necessary if the number of lines is the same 
+        # as before
+        line_change_shift_command = ''
+
+    previous_line_count = line_count 
+
+    # If more than one line is present, we'll need to move the cursor
+    # up by the number of lines -1. Otherwise, an extra line will get
+    # printed with each character.
+    if line_count > 1:
+        up_command = f"\033[{line_count -1}A"
+    # This ANSI escape code, based on Richard's response at
     # https://stackoverflow.com/a/33206814/13097194 ,
-    # will move the cursor up up_count number of times.
+    # will move the cursor up line_count -1 times.
+    else:
+        up_command = '' # If the response is still on the first line,
+    #     # there's no need to move the cursor up, as its vertical
+    #     # position won't shift in the process of writing the response.
 
-    print(f"{text_color}{verse_response.ljust(column_width*line_count + 1)}{up_command}", end = "\r")
-    # I had also added in flush = True, but this didn't appear
-    # to affect the output. 
-    # .ljust() pads the string with ASCII spaces on the right
-    # (see https://docs.python.org/3/library/stdtypes.html#str.ljust).
-    # I added this in so that, if the user needed to hit backspace,
-    # the deleted characters would no longer appear within the string.
+    clear_text_to_right_command = '\033[0K'
+
+    if column_width - (len(verse_response) % column_width) == 1:
+        left_cursor_shift = ''
+    else:
+        left_cursor_shift = '\033[D'
+
+    # print("\033A",line_count, len(verse_response), column_width, column_width - (len(verse_response) % column_width) == 1)
+    print(f"\r{clear_text_to_right_command}{line_change_shift_command}{up_command}{text_color}{verse_response} {left_cursor_shift}", end = '')
     # For the use of Colorama to produce red and green text, see
     # https://pypi.org/project/colorama/
     # and https://stackoverflow.com/a/3332860/13097194
-
+    
     if verse_response == verse: # Note that, unlike with version
         # v1, the player does not need to hit 'Enter' in order
         # to end the typing test after writing a completed
         # verse. This should speed up his/her WPM as a result.
         typing_end_time = time.time()
         typing_time = typing_end_time - typing_start_time
-        print("\nSuccess!")
+        print('\n'*line_count+'Success!') # The cursor
+        # needs to be moved past the lines already printed
+        # so that 'Success' won't overwrite any of the words.
         print(Style.RESET_ALL)
         break
