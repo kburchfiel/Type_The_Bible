@@ -32,6 +32,7 @@
 # * Revise verse numbering for chapters that have lots of verses grouped together. (You can use the PDF version of the WEB as a guide for this)
 # * Create a 'No Errors' field (only possible with v2) so that you can track which tests were typed without any errors.
 # * Add in percentile and last-top-10 results within the report that comes after each test. Make sure this won't fail if the results.csv file starts out blank.
+# * Consider adding in a more detailed accuracy measure for each test.
 
 # %%
 import pandas as pd
@@ -1460,8 +1461,8 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     len(df_results.query("Mistake_Free_Test == 1")) >= 1):
     fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s')
-    fig_mean_wpm_by_book.write_html('Analyses/mean_wpm_by_mistake_free_status.html')
-    fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
+    fig_wpm_by_mistake_free_status.write_html('Analyses/mean_wpm_by_mistake_free_status.html')
+    fig_wpm_by_mistake_free_status.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
     fig_wpm_by_mistake_free_status
 
