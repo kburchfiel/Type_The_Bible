@@ -10,13 +10,16 @@
 # %% [markdown]
 # # Instructions for getting started:
 # 
-# If you have just downloaded this game, you'll want to create new copies of the **results.csv** and **WEB_Catholic_Version_for_game_updated.csv** files. That way, the files will show your results and progress, not mine. You can do so using the following steps:
+# If you have just downloaded this game, you'll want to create new copies of the **WEB_Catholic_Version_for_game_updated.csv**, **results.csv**, and **character_stats.csv** files. That way, the files will show your results and progress, not mine. You can do so using the following steps:
 # 
-# 1. Rename the existing versions of these files as **results_sample.csv** and **WEB_Catholic_Version_for_game_updated_sample.csv**.
+# 1. Rename the existing versions of these files as **WEB_Catholic_Version_for_game_updated_sample.csv**, **results_sample.csv**, and **character_stats_sample.csv**.
 # 
-# 2. Make a copy of **blank_results_file.csv** and rename it **results.csv**.
+# 2. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
 # 
-# 3. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
+# 3. Make a copy of **blank_results_file.csv** and rename it **results.csv**.
+# 
+# 4. Make a copy of **blank_character_sttats_file.csv** and rename it **character_stats.csv**.
+# 
 # 
 # You're now ready to play!
 
@@ -30,9 +33,7 @@
 # * Improve chart formatting (e.g. add titles, legend names, etc.)
 # * Add documentation to other parts of the code as well
 # * Revise verse numbering for chapters that have lots of verses grouped together. (You can use the PDF version of the WEB as a guide for this)
-# * Create a 'No Errors' field (only possible with v2) so that you can track which tests were typed without any errors.
-# * Add in percentile and last-top-10 results within the report that comes after each test. Make sure this won't fail if the results.csv file starts out blank.
-# * Consider adding in a more detailed accuracy measure for each test.
+# * Add in WPM comparisons by accuracy (in both scatterplot and bar chart form. You can create accuracy bins for the bar chart; these bins could be created automatically or specified ahead of time)
 
 # %%
 import pandas as pd
@@ -80,6 +81,13 @@ df_Bible
 # %%
 df_results = pd.read_csv('results.csv', index_col='Test_Number')
 df_results
+
+# %% [markdown]
+# Importing character-level stats: 
+
+# %%
+df_character_stats = pd.read_csv('character_stats.csv')
+df_character_stats
 
 # %%
 for column in ['Local_Start_Time', 'UTC_Start_Time']:
@@ -204,7 +212,7 @@ column_width = 120
 column_width - (55 % column_width)
 
 # %%
-def run_typing_test(verse_number, results_table, test_type = 'v2'):
+def run_typing_test(verse_number, results_table, character_stats_table, test_type = 'v2'):
     '''This function calculates how quickly the user types the characters
     passed to the Bible verse represented by verse_number, then saves those 
     results to the DataFrame passed to results_table.'''
@@ -281,8 +289,19 @@ within the Bible .csv file).\n")
             # frustrating. Therefore, I've now added in a new version
             # of the test (called 'v2') that can be used instead. 
             no_mistakes = np.NaN
+            backspaces_as_pct_of_length = np.NaN
+            incorrect_characters_as_pct_of_length = np.NaN
+            min_character_time = np.NaN
+            median_character_time = np.NaN
+            max_character_time = np.NaN
             local_start_time = pd.Timestamp.now()
             utc_start_time = pd.Timestamp.now(timezone.utc)
+            character_stats_for_latest_test = pd.DataFrame(
+                {'Character': {},
+                'Time Used to Type Last Character (ms)': {},
+                'Last 2 Characters': {},
+                'Time Used to Type Last 2 Characters (ms)': {}}
+                )
 
             # I used to use ISO8601-compatible timestamps via the following
             # lines, but decided to switch to a value that Pandas would 
@@ -317,16 +336,23 @@ within the Bible .csv file).\n")
             # a mistake. If it remains at 1 throughout the race, then
             # a mistake-free race will get logged in results_table.
             previous_line_count = 1
-
+            backspace_count = 0
+            incorrect_character_count = 0
+            correct_consecutive_entries = 0 # Keeps track of the number
+            # of correct characters typed in a row. Both incorrect characters
+            # and backspace keypresses will reset this value to 0.
+            character_timestamp_list = []
+            character_time_list = []
+            character_stats_list = []
             local_start_time = pd.Timestamp.now()
             utc_start_time = pd.Timestamp.now(timezone.utc)
-
             typing_start_time = time.time()
             while True: # This while loop allows the player to enter
                 # multiple characters.
-                # to allow the player to enter 
                 character = getch() # getch() allows each character to be 
                 # checked, making it easier to identify mistyped words.
+                character_press_time = time.time()
+
                 if character == b'\x08': 
                     # This will return True if the user hits backspace.
                     # In this case, we'll want to remove the latest character
@@ -335,8 +361,13 @@ within the Bible .csv file).\n")
                     # Calling print(character) after
                     # hitting backspace revealed that b'\x08' was the code
                     # associated with the backspace key. 
+                    backspace_count += 1
                     verse_response = verse_response[:-1] # Trims the last
                     # value off verse_response.
+                    correct_consecutive_entries = 0 # Resets this value
+                    # so that a correct entry followed by a backspace and
+                    # another correct entry won't be counted as two
+                    # correct entries in a row.
                 elif character == b'`':
                     print(Style.RESET_ALL) # Resets the color of the text.
                     verse_response += character.decode('ascii') # The presence
@@ -360,10 +391,48 @@ within the Bible .csv file).\n")
                 # Determining which color to use for the text:
                 if verse[0:len(verse_response)] == verse_response:
                     text_color = Fore.GREEN
+                    # Adding the time it took to type the last character
+                    # to the list: (Note that the time it takes to 
+                    # enter a backspace won't be included.)
+                    if character != b'\x08':
+                        character_timestamp_list.append(character_press_time)
+                        correct_consecutive_entries += 1
+
+                        if correct_consecutive_entries >= 2:
+                            # Limiting the additions to character_time_list
+                            # to cases in which 2+ characters have been
+                            # typed correctly in a row will prevent the data 
+                            # from getting skewed by incorrect results. 
+                            character_time_list.append(
+                                character_timestamp_list[-1] - 
+                                character_timestamp_list[-2])
+                        if correct_consecutive_entries >= 3:
+                            # We're using 3 as a threshold instead of 2 so
+                            # that our statistics on the time needed
+                            # to type the last 2 characters won't get skewed
+                            # by cases in which the 3rd-to-last character
+                            # was typed incorrectly.
+                            character_stats_list.append(
+                            {'Character': character.decode('ascii'),
+                            'Time Used to Type Last Character (ms)': 1000 * (
+                                character_timestamp_list[-1] - 
+                                character_timestamp_list[-2]),
+                                'Last 2 Characters':verse_response[-2:],
+                                'Time Used to Type Last 2 Characters (ms)':
+                                1000 * (character_timestamp_list[-1] - 
+                                character_timestamp_list[-3])}
+                            )
+
                 else:
                     no_mistakes = 0 # This flag will remain at 0 for the 
                     # rest of the race.
+                    correct_consecutive_entries = 0
                     text_color = Fore.RED 
+                    if character != b'\x08': # Backspaces won't be counted
+                        # towards the incorrect character count so that
+                        # players won't be double-penalized for mistyping
+                        # a character.
+                        incorrect_character_count += 1
                 
                 # Printing the player's response so far: 
                 
@@ -455,6 +524,30 @@ within the Bible .csv file).\n")
                     # needs to be moved past the lines already printed
                     # so that 'Success' won't overwrite any of the words.
                     print(Style.RESET_ALL)
+
+
+                    # Accuracy calculations:
+                    # Calculating backspaces as a percentage of verse length:
+                    backspaces_as_pct_of_length = (
+                        100 * backspace_count / len(verse)) # The 100* 
+                        # multiplier converts these values from 
+                        # proportions to percentages.
+
+                    # Calculating incorrect entries as a percentage of verse
+                    # length:
+                    incorrect_characters_as_pct_of_length = (
+                        100 * incorrect_character_count / len(verse))
+                
+
+                    # Calculating timing statistics at the character level:
+                    # Note that each value will be converted from
+                    # seconds to milliseconds.
+                    min_character_time = 1000*min(character_time_list)
+                    median_character_time = 1000*np.median(character_time_list)
+                    max_character_time= 1000*max(character_time_list)
+
+                    character_stats_for_latest_test = pd.DataFrame(
+                        character_stats_list)
                     break
 
         if verse_response == verse:
@@ -494,6 +587,12 @@ was typed '{verse_response_words[i]}'.")
     # then dividing by 5 to convert from characters to words.
     wpm
 
+    # print(min_character_time, median_character_time, max_character_time)
+
+    character_stats_table = pd.concat(
+        [character_stats_table, character_stats_for_latest_test]).reset_index(
+            drop=True)
+
     # Creating a single-row DataFrame that stores the player's results:
     df_latest_result = pd.DataFrame(index = [
         len(results_table)+1], data = {'Unix_Start_Time':typing_start_time, 
@@ -504,6 +603,12 @@ was typed '{verse_response_words[i]}'.")
     'CPS': cps,
     'WPM':wpm,
     'Mistake_Free_Test':no_mistakes,
+    'Backspaces as % of Verse Length': backspaces_as_pct_of_length,
+    'Incorrect Characters as % of Verse Length': \
+incorrect_characters_as_pct_of_length,
+    'Min Character Time (ms)': min_character_time,
+    'Median Character Time (ms)': median_character_time,
+    'Max Character Time (ms)': max_character_time,
     'Book': book,
     'Chapter': chapter,
     'Verse #': verse_number_within_chapter,
@@ -569,7 +674,17 @@ respectively. Your WPM percentile was {latest_percentile} \
         # in the above if statement.
         df_Bible.at[verse_number-1, 'Fastest_WPM'] = wpm
 
-    return results_table
+    # Autosaving results as separate files: (That way, if the script crashes,
+    # the player won't lose all of his/her progress.)
+    try:
+        results_table.to_csv('df_results_autosave.csv', index = False)
+        df_Bible.to_csv('WEB_Catholic_Version_for_game_updated_autosave.csv')
+        character_stats_table.to_csv('character_stats_autosave.csv', index = False)
+    except:
+        print("At least one of the autosave files could not be saved. Close \
+out of any open autosave files before starting the next test \
+so that they can be updated.")
+    return (results_table, character_stats_table)
 
 
 # %%
@@ -666,7 +781,7 @@ def calculate_current_day_results(df):
     return result_string
 
 # %%
-def run_game(results_table):
+def run_game(results_table, character_stats_table):
     '''This function runs Type Through the Bible by 
     calling various other functions. It allows users to select
     verses to type, then runs typing tests and stores the results in
@@ -709,8 +824,11 @@ by hitting the ` (backtick) key.")
     
 
     while True: # Allows the game to continue until the user exits
-        results_table = run_typing_test(verse_number=verse_number, 
-        results_table=results_table, test_type = typing_test_version)
+        results_table, character_stats_table = run_typing_test(
+            verse_number=verse_number, 
+        results_table=results_table, 
+        character_stats_table=character_stats_table,
+        test_type = typing_test_version)
         # The game will next share an updated progress report:
         print(calculate_current_day_results(results_table))
         
@@ -722,17 +840,17 @@ by hitting the ` (backtick) key.")
         if verse_number == -1: # In this case, the game will quit and the 
             # user's new test results will be saved to results_table.
             run_analyses = 1
-            return (results_table, run_analyses)
+            return (results_table, character_stats_table, run_analyses)
         if verse_number == -2: # In this case, the game will quit and the 
             # user's new test results will be saved to results_table.
             # However, the analysis portion of the script will be skipped 
             # in order to save time.
             run_analyses = 0
-            return (results_table, run_analyses)
+            return (results_table, character_stats_table, run_analyses)
 
 
 # %%
-df_results, run_analyses = run_game(results_table = df_results)
+df_results, df_character_stats, run_analyses = run_game(results_table = df_results, character_stats_table=df_character_stats)
 
 # %%
 df_results
@@ -761,8 +879,6 @@ proportion_of_Bible_typed = characters_typed_sum / df_Bible['Characters'].sum()
 
 print(f"You have typed {characters_typed_sum} characters so far, \
 which represents {round(100*proportion_of_Bible_typed, 4)}% of the Bible.")
-
-
 
 # %% [markdown]
 # # Adding in additional values and statistics to df_results:
@@ -819,6 +935,10 @@ df_results['cumulative_avg'] = [round(np.mean(df_results.iloc[0:i+1]['WPM']),
 df_results
 
 # %%
+df_character_stats['Count'] = 1 # Will be useful when analyzing character
+# statistics
+
+# %%
 print("Saving results:")
 
 # %%
@@ -846,7 +966,11 @@ attempt_save(df_results, 'results.csv', index = True)
 attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = False)
 
 # %%
-print("Successfully saved updated copies of the Results and Bible .csv files.")
+attempt_save(df_character_stats, 'character_stats.csv', index = False)
+
+# %%
+print("Successfully saved updated copies of the Results, Character Stats, \
+and Bible .csv files.")
 
 # %%
 if run_analyses == 0: # In this case, the analysis portion of the script will
@@ -1484,6 +1608,56 @@ fig_wpm_by_percentile.write_html('Analyses/wpm_by_percentile.html')
 fig_wpm_by_percentile.write_image('Analyses/wpm_by_percentile.png', width = 1920, 
 height = 1080, engine = 'kaleido', scale = 2)
 fig_wpm_by_percentile
+
+# %% [markdown]
+# ## Analyzing character statistics:
+
+# %%
+# Calculating the fastest keypresses (in ms):
+# Note: This analysis will only include characters that were preceded by at 
+# least two correctly typed characters. (This is due to the code underlying
+# the construction of the source table.)
+
+df_fastest_keypresses = df_character_stats.sort_values('Time Used to Type Last Character (ms)').head(50).copy().reset_index(drop=True)
+df_fastest_keypresses['Rank'] = df_fastest_keypresses.index + 1
+df_fastest_keypresses.to_csv('Analyses/fastest_keypresses.csv')
+df_fastest_keypresses
+
+# %%
+fig_fastest_keypresses = px.bar(df_fastest_keypresses, x = 'Rank', y = 'Time Used to Type Last Character (ms)', text_auto = '.3s', title = 'Fastest Keypresses (ms)<br><i>(Note: these values only include characters that were immediately preceded by<br>at least 2 correct keypresess)')
+fig_fastest_keypresses.write_html('Analyses/fastest_keypresses.html')
+fig_fastest_keypresses.write_image('Analyses/fastest_keypresses.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+
+fig_fastest_keypresses
+
+# %%
+df_character_durations = df_character_stats.pivot_table(index = 'Character', values = ['Time Used to Type Last Character (ms)', 'Count'], aggfunc = {'Time Used to Type Last Character (ms)':np.median, 'Count':sum}).reset_index().sort_values('Time Used to Type Last Character (ms)').reset_index(drop=True)
+df_character_durations['Character'] = df_character_durations['Character'].replace(' ', '_')
+df_character_durations.to_csv('Analyses/median_character_durations.csv', index = False)
+df_character_durations
+
+# %%
+fig_character_durations = px.bar(df_character_durations, x = 'Character', y = 'Time Used to Type Last Character (ms)', color = 'Count')
+fig_character_durations.write_html('Analyses/median_character_durations.html')
+fig_character_durations.write_image('Analyses/median_character_durations.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+fig_character_durations
+
+# %%
+df_last_2_character_durations = df_character_stats.pivot_table(index = 'Last 2 Characters', values = ['Time Used to Type Last 2 Characters (ms)', 'Count'], aggfunc = {'Time Used to Type Last 2 Characters (ms)':np.median, 'Count':sum}).reset_index().sort_values('Time Used to Type Last 2 Characters (ms)').reset_index(drop=True)
+df_last_2_character_durations.to_csv('Analyses/median_last_2_character_durations.csv', index = False)
+# Replacing spaces with underscores to make them more visible:
+df_last_2_character_durations['Last 2 Characters'] = \
+df_last_2_character_durations['Last 2 Characters'].str.replace(' ', '_')
+df_last_2_character_durations
+
+# %%
+fig_last_2_character_durations = px.bar(df_last_2_character_durations, x = 'Last 2 Characters', y = 'Time Used to Type Last 2 Characters (ms)', color = 'Count')
+fig_last_2_character_durations.write_html('Analyses/median_character_pair_durations.html')
+fig_last_2_character_durations.write_image('Analyses/median_character_pair_durations.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+fig_last_2_character_durations
 
 # %%
 analysis_end_time = time.time()
