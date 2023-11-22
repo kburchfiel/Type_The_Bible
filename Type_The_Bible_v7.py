@@ -556,7 +556,7 @@ within the Bible .csv file).\n")
             # out of the while statement.
         elif (verse_response.lower() == 'exit') or ('`' in verse_response):
             print("Exiting typing test.")
-            return results_table # Exits the function without saving the 
+            return results_table, character_stats_table # Exits the function without saving the 
             # current test to results_table or df_Bible. This function has
             # been updated to work with both versions of the typing
             # test.
@@ -677,9 +677,11 @@ respectively. Your WPM percentile was {latest_percentile} \
     # Autosaving results as separate files: (That way, if the script crashes,
     # the player won't lose all of his/her progress.)
     try:
-        results_table.to_csv('df_results_autosave.csv', index = False)
-        df_Bible.to_csv('WEB_Catholic_Version_for_game_updated_autosave.csv')
-        character_stats_table.to_csv('character_stats_autosave.csv', index = False)
+        results_table.to_csv('df_results_autosave.csv', index = True)
+        df_Bible.to_csv('WEB_Catholic_Version_for_game_updated_autosave.csv', 
+        index = False)
+        character_stats_table.to_csv('character_stats_autosave.csv', 
+        index = False)
     except:
         print("At least one of the autosave files could not be saved. Close \
 out of any open autosave files before starting the next test \
