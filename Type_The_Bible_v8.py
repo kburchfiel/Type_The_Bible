@@ -69,7 +69,7 @@ extra_analyses = False
 # within a Jupyter notebook is based on Gustavo Bezerra's response
 # at https://stackoverflow.com/a/39662359/13097194 . I found that
 # just calling get_ipython() was sufficient, at least on Windows and within
-# Visual Studio Code; his answer is more complex.
+# Visual Studio Code.
 
 try: 
     get_ipython()
