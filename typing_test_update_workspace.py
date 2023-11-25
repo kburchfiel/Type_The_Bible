@@ -22,10 +22,6 @@ just_fix_windows_console() # From https://github.com/tartley/colorama/blob/maste
 verse = "God made the two great lights: the greater light to rule the day, and the lesser light to rule the night. He also made the stars."
 print(verse)
 
-
-
-verse = "God made the two great lights: the greater light to rule the day, and the lesser light to rule the night. He also made the stars."
-
 # Creating a list of words within the verse that we can use for
 # word-based typing test analyses:
 # We could use verse.split(' ') to create a list of words. However,
@@ -119,17 +115,50 @@ last_character_index = -1 # Initializing this variable with a number
 # that will never occur within the game so that this value won't
 # get interpreted as an actual value
 
+# This version of the test checks the player's input after
+# each character is typed. If the player's input is correct
+# so far, the text will be highlighted green; otherwise,
+# it will be highlighted red. (This allows the player to be 
+# notified of an error without the need for a line break
+# in the console, which could prove distracting.)
+# This function has been tested on Windows, but not yet 
+# on Mac or Linux. The use of the Colorama library should
+# make it cross-platform, however.
+verse_response = '' # This string will store the player's 
+# response.
+no_mistakes = 1 # This flag will get set to 0 if the player makes
+# a mistake. If it remains at 1 throughout the race, then
+# a mistake-free race will get logged in results_table.
+previous_line_count = 1
+backspace_count = 0
+incorrect_character_count = 0
+correct_consecutive_entries = 0 # Keeps track of the number
+# of correct characters typed in a row. Both incorrect characters
+# and backspace keypresses will reset this value to 0.
+character_timestamp_list = []
+character_time_list = []
+character_stats_list = []
+word_stats_list = []
+local_start_time = pd.Timestamp.now()
+utc_start_time = pd.Timestamp.now(timezone.utc)
+typing_start_time = time.time()
+last_character_index = -1 # Initializing this variable with a number
+# that will never occur within the game so that this value won't
+# get interpreted as an actual value
+
 while True: # This while loop allows the player to enter multiple characters.
     if (len(verse_response) == 0) & (
-        0 in df_word_index_list['first_character_index']):
+        0 in df_word_index_list['first_character_index'].to_list()):
         word_start_time = time.time()
         last_character_index = df_word_index_list.query(
-            'first_character_index == 0').iloc[0][
+            'first_character_index == 0').copy().iloc[0][
                 'last_character_index']
         word = df_word_index_list.query(
-            'first_character_index == 0').iloc[0][
+            'first_character_index == 0').copy().iloc[0][
                 'word']
-    print(last_character_index)
+        print(f" Started typing {word}.")
+        typed_word_without_mistakes = 1
+        # print(f" {last_character_index}")
     character = getch() # getch() allows each character to be 
     # checked, making it easier to identify mistyped words.
     character_press_time = time.time()
@@ -149,6 +178,7 @@ while True: # This while loop allows the player to enter multiple characters.
         # so that a correct entry followed by a backspace and
         # another correct entry won't be counted as two
         # correct entries in a row.
+        typed_word_without_mistakes = 0
     elif character == b'`':
         print(Style.RESET_ALL) # Resets the color of the text.
         verse_response += character.decode('ascii') # The presence
@@ -176,15 +206,37 @@ while True: # This while loop allows the player to enter multiple characters.
         # Adding the time it took to type the last character
         # to the list: (Note that the time it takes to 
         # enter a backspace won't be included.)
-        if len(verse_response) -1 == last_character_index:
-            # Because index values begin at 0, the last_character_index
-            # value will always be one lower than the length of the verse
-            # at the time that character is reached.
+        verse_response_minus_one = len(verse_response) -1 # The character
+        # Index values in df_word_index_list start at 0, so this variable
+        # will help us convert between verse lengths and index positions.
+        if verse_response_minus_one in df_word_index_list[
+            'previous_character_index'].to_list():
+            # If this returns true, we know we're
+            # at the starting point of a new word.
+            # print(verse_response_minus_one, df_word_index_list['previous_character_index'])
+            # print("Start of new word detected (Point A).")
+            typed_word_without_mistakes = 1
+            verse_response_minus_one = len(verse_response) -1
+            word_start_time = character_press_time # The start time of this new word is defined as the time that the character preceding the word was pressed 
+            last_character_index = df_word_index_list.query(
+                "previous_character_index == @verse_response_minus_one").iloc[
+                    0]['last_character_index']
+            word = df_word_index_list.query(
+                'previous_character_index == @verse_response_minus_one').iloc[0][
+                    'word']
+            print(f" Started typing {word}.")
+
+        if verse_response_minus_one == last_character_index:
             # We're placing this check within the correct response
             # condition so that a typo won't get counted as having
             # correctly ended a word.
-            word_end_time = time.time()
-            print(word, word_end_time - word_start_time)
+            word_end_time = character_press_time
+            print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
+            word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
+            # Other analyses can be added to our 
+            # word stats table later on, so we don't
+            # need to compute them now.
+        
         
         if character != b'\x08':
             character_timestamp_list.append(character_press_time)
@@ -218,6 +270,7 @@ while True: # This while loop allows the player to enter multiple characters.
     else:
         no_mistakes = 0 # This flag will remain at 0 for the 
         # rest of the race.
+        typed_word_without_mistakes = 0 
         correct_consecutive_entries = 0
         text_color = Fore.RED 
         if character != b'\x08': # Backspaces won't be counted
@@ -317,7 +370,6 @@ while True: # This while loop allows the player to enter multiple characters.
         # so that 'Success' won't overwrite any of the words.
         print(Style.RESET_ALL)
 
-
         # Accuracy calculations:
         # Calculating backspaces as a percentage of verse length:
         backspaces_as_pct_of_length = (
@@ -338,6 +390,8 @@ while True: # This while loop allows the player to enter multiple characters.
         median_character_time = 1000*np.median(character_time_list)
         max_character_time= 1000*max(character_time_list)
 
+        # Calculating timing statistics at the word level:
         character_stats_for_latest_test = pd.DataFrame(
             character_stats_list)
+        word_stats_for_latest_test = pd.DataFrame(word_stats_list)
         break
