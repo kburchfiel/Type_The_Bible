@@ -1,1 +1,1 @@
-word,word_duration,typed_word_without_mistakes
+word,typed_word_without_mistakes,word_duration (ms),Count,characters,CPS,WPM

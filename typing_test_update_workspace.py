@@ -208,35 +208,7 @@ while True: # This while loop allows the player to enter multiple characters.
         # enter a backspace won't be included.)
         verse_response_minus_one = len(verse_response) -1 # The character
         # Index values in df_word_index_list start at 0, so this variable
-        # will help us convert between verse lengths and index positions.
-        if verse_response_minus_one in df_word_index_list[
-            'previous_character_index'].to_list():
-            # If this returns true, we know we're
-            # at the starting point of a new word.
-            # print(verse_response_minus_one, df_word_index_list['previous_character_index'])
-            # print("Start of new word detected (Point A).")
-            typed_word_without_mistakes = 1
-            verse_response_minus_one = len(verse_response) -1
-            word_start_time = character_press_time # The start time of this new word is defined as the time that the character preceding the word was pressed 
-            last_character_index = df_word_index_list.query(
-                "previous_character_index == @verse_response_minus_one").iloc[
-                    0]['last_character_index']
-            word = df_word_index_list.query(
-                'previous_character_index == @verse_response_minus_one').iloc[0][
-                    'word']
-            print(f" Started typing {word}.")
-
-        if verse_response_minus_one == last_character_index:
-            # We're placing this check within the correct response
-            # condition so that a typo won't get counted as having
-            # correctly ended a word.
-            word_end_time = character_press_time
-            print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
-            word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
-            # Other analyses can be added to our 
-            # word stats table later on, so we don't
-            # need to compute them now.
-        
+        # will help us convert between verse lengths and index positions.        
         
         if character != b'\x08':
             character_timestamp_list.append(character_press_time)
@@ -246,10 +218,11 @@ while True: # This while loop allows the player to enter multiple characters.
                 # Limiting the additions to character_time_list
                 # to cases in which 2+ characters have been
                 # typed correctly in a row will prevent the data 
-                # from getting skewed by incorrect results. 
+                # from getting skewed by incorrect output. 
                 character_time_list.append(
                     character_timestamp_list[-1] - 
                     character_timestamp_list[-2])
+                
             if correct_consecutive_entries >= 3:
                 # We're using 3 as a threshold instead of 2 so
                 # that our statistics on the time needed
@@ -266,6 +239,42 @@ while True: # This while loop allows the player to enter multiple characters.
                     1000 * (character_timestamp_list[-1] - 
                     character_timestamp_list[-3])}
                 )
+                print(f"Finished typing {character.decode('ascii')} in \
+{1000 * (character_timestamp_list[-1] - character_timestamp_list[-2])} ms. \
+Finished typing {verse_response[-2:]} in \
+{1000 * (character_timestamp_list[-1] - character_timestamp_list[-3])} ms.")
+
+            # Checking whether a word has begun or ended:
+            # We're placing these checks within the correct response and
+            # no backspace clauses so that a typo or backspace won't
+            # count as having correctly begun or ended a word.
+
+            if verse_response_minus_one == last_character_index:
+                word_end_time = character_press_time
+                print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
+                word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
+                # Other analyses can be added to our 
+                # word stats table later on, so we don't
+                # need to compute them now.
+
+            if verse_response_minus_one in df_word_index_list[
+                'previous_character_index'].to_list():
+                # If this returns true, we know we're
+                # at the starting point of a new word.
+                # print(verse_response_minus_one, df_word_index_list['previous_character_index'])
+                # print("Start of new word detected (Point A).")
+                typed_word_without_mistakes = 1
+                verse_response_minus_one = len(verse_response) -1
+                word_start_time = character_press_time # The start time of 
+                # this new word is defined as the time that the character 
+                # preceding the word was pressed.
+                last_character_index = df_word_index_list.query(
+                    "previous_character_index == @verse_response_minus_one").iloc[
+                        0]['last_character_index']
+                word = df_word_index_list.query(
+                    'previous_character_index == @verse_response_minus_one').iloc[0][
+                        'word']
+                print(f" Started typing {word}.")
 
     else:
         no_mistakes = 0 # This flag will remain at 0 for the 

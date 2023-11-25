@@ -10,15 +10,17 @@
 # %% [markdown]
 # # Instructions for getting started:
 # 
-# If you have just downloaded this game, you'll want to create new copies of the **WEB_Catholic_Version_for_game_updated.csv**, **results.csv**, and **character_stats.csv** files. That way, the files will show your results and progress, not mine. You can do so using the following steps:
+# If you have just downloaded this game, you'll want to create new copies of the **WEB_Catholic_Version_for_game_updated.csv**, **results.csv**, **character_stats.csv**, and **word_stats.csv** files. That way, the files will show your results and progress, not mine. You can do so using the following steps:
 # 
-# 1. Rename the existing versions of these files as **WEB_Catholic_Version_for_game_updated_sample.csv**, **results_sample.csv**, and **character_stats_sample.csv**.
+# 1. Rename the existing versions of these files as **WEB_Catholic_Version_for_game_updated_sample.csv**, **results_sample.csv**, **character_stats_sample.csv**, and **word_stats_sample.csv**
 # 
 # 2. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
 # 
 # 3. Make a copy of **blank_results_file.csv** and rename it **results.csv**.
 # 
-# 4. Make a copy of **blank_character_sttats_file.csv** and rename it **character_stats.csv**.
+# 4. Make a copy of **blank_character_stats_file.csv** and rename it **character_stats.csv**.
+# 
+# 5. Make a copy of **blank_word_stats_file.csv** and rename it **word_stats.csv**.
 # 
 # 
 # You're now ready to play!
@@ -30,12 +32,13 @@
 # Next steps: (Not necessarily in order of importance)
 # 
 # 
-# * Update your word stats code so that if you start typing a word but enter the leading characters wrong, then press backspace, the timer won't reset (e.g. it will realize that a word is already in the process of being typed). You can add another flag to accomplish this, perhaps--or you can use your existing 'word mistyped' flag (since that should be 1 if the word hasn't been mistyped and 0 otherwise).
+# * Use your typing test workspace file to see what happens if a user hits backspace at the start of the script.
 # * Finish documenting your v2 print code and the variables/ANSI escape codes that it uses
 # * Improve chart formatting (e.g. add titles, legend names, etc.)
 # * Add documentation to other parts of the code as well
 # * Revise verse numbering for chapters that have lots of verses grouped together. (You can use the PDF version of the WEB as a guide for this)
 # * Add in WPM comparisons by accuracy (in both scatterplot and bar chart form. You can create accuracy bins for the bar chart; these bins could be created automatically or specified ahead of time)
+# * Revise file names or create a renaming script so that users won't need to manually rename them.
 
 # %%
 import pandas as pd
@@ -294,7 +297,7 @@ def run_typing_test(verse_number, results_table, character_stats_table,
         verse_number-1]['Verse_Order']
     
     df_word_index_list = create_word_table(verse)
-    print(df_word_index_list)
+    # print(df_word_index_list)
 
     # I moved these introductory comments out of the following while loop
     # in order to simplify the dialogue presented to users during retest
@@ -413,6 +416,37 @@ within the Bible .csv file).\n")
             # that will never occur within the game so that this value won't
             # get interpreted as an actual value
 
+            # This version of the test checks the player's input after
+            # each character is typed. If the player's input is correct
+            # so far, the text will be highlighted green; otherwise,
+            # it will be highlighted red. (This allows the player to be 
+            # notified of an error without the need for a line break
+            # in the console, which could prove distracting.)
+            # This function has been tested on Windows, but not yet 
+            # on Mac or Linux. The use of the Colorama library should
+            # make it cross-platform, however.
+            verse_response = '' # This string will store the player's 
+            # response.
+            no_mistakes = 1 # This flag will get set to 0 if the player makes
+            # a mistake. If it remains at 1 throughout the race, then
+            # a mistake-free race will get logged in results_table.
+            previous_line_count = 1
+            backspace_count = 0
+            incorrect_character_count = 0
+            correct_consecutive_entries = 0 # Keeps track of the number
+            # of correct characters typed in a row. Both incorrect characters
+            # and backspace keypresses will reset this value to 0.
+            character_timestamp_list = []
+            character_time_list = []
+            character_stats_list = []
+            word_stats_list = []
+            local_start_time = pd.Timestamp.now()
+            utc_start_time = pd.Timestamp.now(timezone.utc)
+            typing_start_time = time.time()
+            last_character_index = -1 # Initializing this variable with a number
+            # that will never occur within the game so that this value won't
+            # get interpreted as an actual value
+
             while True: # This while loop allows the player to enter multiple characters.
                 if (len(verse_response) == 0) & (
                     0 in df_word_index_list['first_character_index'].to_list()):
@@ -475,35 +509,7 @@ within the Bible .csv file).\n")
                     # enter a backspace won't be included.)
                     verse_response_minus_one = len(verse_response) -1 # The character
                     # Index values in df_word_index_list start at 0, so this variable
-                    # will help us convert between verse lengths and index positions.
-                    if verse_response_minus_one in df_word_index_list[
-                        'previous_character_index'].to_list():
-                        # If this returns true, we know we're
-                        # at the starting point of a new word.
-                        # print(verse_response_minus_one, df_word_index_list['previous_character_index'])
-                        # print("Start of new word detected (Point A).")
-                        typed_word_without_mistakes = 1
-                        verse_response_minus_one = len(verse_response) -1
-                        word_start_time = character_press_time # The start time of this new word is defined as the time that the character preceding the word was pressed 
-                        last_character_index = df_word_index_list.query(
-                            "previous_character_index == @verse_response_minus_one").iloc[
-                                0]['last_character_index']
-                        word = df_word_index_list.query(
-                            'previous_character_index == @verse_response_minus_one').iloc[0][
-                                'word']
-                        # print(f" Started typing {word}.")
-
-                    if verse_response_minus_one == last_character_index:
-                        # We're placing this check within the correct response
-                        # condition so that a typo won't get counted as having
-                        # correctly ended a word.
-                        word_end_time = character_press_time
-                        # print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
-                        word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
-                        # Other analyses can be added to our 
-                        # word stats table later on, so we don't
-                        # need to compute them now.
-                    
+                    # will help us convert between verse lengths and index positions.        
                     
                     if character != b'\x08':
                         character_timestamp_list.append(character_press_time)
@@ -513,10 +519,11 @@ within the Bible .csv file).\n")
                             # Limiting the additions to character_time_list
                             # to cases in which 2+ characters have been
                             # typed correctly in a row will prevent the data 
-                            # from getting skewed by incorrect results. 
+                            # from getting skewed by incorrect output. 
                             character_time_list.append(
                                 character_timestamp_list[-1] - 
                                 character_timestamp_list[-2])
+                            
                         if correct_consecutive_entries >= 3:
                             # We're using 3 as a threshold instead of 2 so
                             # that our statistics on the time needed
@@ -533,6 +540,42 @@ within the Bible .csv file).\n")
                                 1000 * (character_timestamp_list[-1] - 
                                 character_timestamp_list[-3])}
                             )
+            #                 print(f"Finished typing {character.decode('ascii')} in \
+            # {1000 * (character_timestamp_list[-1] - character_timestamp_list[-2])} ms. \
+            # Finished typing {verse_response[-2:]} in \
+            # {1000 * (character_timestamp_list[-1] - character_timestamp_list[-3])} ms.")
+
+                        # Checking whether a word has begun or ended:
+                        # We're placing these checks within the correct response and
+                        # no backspace clauses so that a typo or backspace won't
+                        # count as having correctly begun or ended a word.
+
+                        if verse_response_minus_one == last_character_index:
+                            word_end_time = character_press_time
+                            # print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
+                            word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
+                            # Other analyses can be added to our 
+                            # word stats table later on, so we don't
+                            # need to compute them now.
+
+                        if verse_response_minus_one in df_word_index_list[
+                            'previous_character_index'].to_list():
+                            # If this returns true, we know we're
+                            # at the starting point of a new word.
+                            # print(verse_response_minus_one, df_word_index_list['previous_character_index'])
+                            # print("Start of new word detected (Point A).")
+                            typed_word_without_mistakes = 1
+                            verse_response_minus_one = len(verse_response) -1
+                            word_start_time = character_press_time # The start time of 
+                            # this new word is defined as the time that the character 
+                            # preceding the word was pressed.
+                            last_character_index = df_word_index_list.query(
+                                "previous_character_index == @verse_response_minus_one").iloc[
+                                    0]['last_character_index']
+                            word = df_word_index_list.query(
+                                'previous_character_index == @verse_response_minus_one').iloc[0][
+                                    'word']
+                            # print(f" Started typing {word}.")
 
                 else:
                     no_mistakes = 0 # This flag will remain at 0 for the 
@@ -669,7 +712,7 @@ within the Bible .csv file).\n")
             # out of the while statement.
         elif (verse_response.lower() == 'exit') or ('`' in verse_response):
             print("Exiting typing test.")
-            return results_table, character_stats_table # Exits the function without saving the 
+            return results_table, character_stats_table, word_stats_table # Exits the function without saving the 
             # current test to results_table or df_Bible. This function has
             # been updated to work with both versions of the typing
             # test.
@@ -1000,7 +1043,7 @@ print(f"You have typed {characters_typed_sum} characters so far, \
 which represents {round(100*proportion_of_Bible_typed, 4)}% of the Bible.")
 
 # %% [markdown]
-# # Adding in additional values and statistics to df_results:
+# # Adding additional values and statistics to df_results:
 # 
 # (The following cell was derived from [this script](https://github.com/kburchfiel/typeracer_data_analyzer/blob/master/typeracer_data_analyzer_v2.ipynb) that I wrote.)
 # 
@@ -1055,8 +1098,6 @@ df_results
 
 # %% [markdown]
 # # Adding additional metrics to df_word_stats:
-# 
-# # Here with editing
 
 # %%
 df_word_stats['Count'] = 1
@@ -1066,7 +1107,7 @@ df_word_stats['WPM'] = df_word_stats['CPS'] * 12
 df_word_stats
 
 # %%
-df_character_stats['Count'] = 1 # Will be useful when analyzing character
+df_character_stats['Count'] = 1 # Will help the script analyze character
 # statistics
 
 # %%
@@ -1792,6 +1833,61 @@ fig_last_2_character_durations.write_html('Analyses/median_character_pair_durati
 fig_last_2_character_durations.write_image('Analyses/median_character_pair_durations.png', width = 1920, 
 height = 1080, engine = 'kaleido', scale = 2)
 fig_last_2_character_durations
+
+# %% [markdown]
+# # Creating word-level analyses:
+
+# %%
+df_word_stats.head(3)
+
+# %%
+df_word_stats_pivot = df_word_stats.pivot_table(index = 'word', values = {'Count', 'typed_word_without_mistakes', 'WPM'}, aggfunc = {'Count':'sum', 'typed_word_without_mistakes':'mean', 'WPM':'mean'}).reset_index().sort_values('WPM', ascending = False).reset_index(drop=True)
+
+df_word_stats_pivot.to_csv('Analyses/word_stats_pivot.csv', index = False)
+
+df_word_stats_pivot
+
+
+# %%
+fig_words_with_highest_mean_wpms = px.bar(df_word_stats_pivot.head(50), 
+x = 'word', y = 'WPM', color = 'Count', text_auto = '.6s')
+fig_words_with_highest_mean_wpms.write_html('Analyses/words_with_highest_mean_wpms.html')
+fig_words_with_highest_mean_wpms.write_image('Analyses/words_with_highest_mean_wpms.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+fig_words_with_highest_mean_wpms
+
+# %%
+fig_words_with_lowest_mean_wpms = px.bar(
+df_word_stats_pivot.tail(50).sort_values(
+'WPM'), x = 'word', y = 'WPM', color = 'Count', text_auto = '.6s')
+fig_words_with_lowest_mean_wpms.write_html(
+'Analyses/words_with_lowest_mean_wpms.html')
+fig_words_with_lowest_mean_wpms.write_image(
+'Analyses/words_with_lowest_mean_wpms.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+fig_words_with_lowest_mean_wpms
+
+# %%
+df_words_with_highest_individual_wpms = df_word_stats.sort_values(
+    'WPM', ascending = False).copy()
+df_words_with_highest_individual_wpms = \
+df_words_with_highest_individual_wpms.drop_duplicates(
+'word', keep = 'first').head(50).reset_index(drop=True) # Keeps only 
+# the highest-WPM copy of each word
+df_words_with_highest_individual_wpms.to_csv(
+    'Analyses/words_with_highest_individual_wpms.csv', index = False)
+df_words_with_highest_individual_wpms
+
+# %%
+fig_words_with_highest_individual_wpms = px.bar(
+df_words_with_highest_individual_wpms.sort_values(
+'WPM', ascending = False), x = 'word', y = 'WPM', text_auto = '.6s')
+fig_words_with_highest_individual_wpms.write_html(
+'Analyses/words_with_highest_individual_wpms.html')
+fig_words_with_highest_individual_wpms.write_image(
+'Analyses/words_with_highest_individual_wpms.png', width = 1920, 
+height = 1080, engine = 'kaleido', scale = 2)
+fig_words_with_highest_individual_wpms
 
 # %%
 analysis_end_time = time.time()
