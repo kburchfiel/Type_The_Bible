@@ -259,13 +259,22 @@ def create_word_table(verse):
         word = first_character
         i = 1
         while True:
-            next_character = verse[index + i]
-            if next_character.isalpha() == True: # 
-                word += next_character
-                i += 1
-            else:
-                last_character_index = index + i -1
+            position_within_verse = index + i
+            if position_within_verse != len(verse): # In this case, 
+                # we haven't yet made it to the very end of the verse.
+                next_character = verse[position_within_verse]
+                if next_character.isalpha() == True: # 
+                    word += next_character
+                    i += 1
+                else:
+                    last_character_index = position_within_verse -1
+                    break
+            else: # In this case, we're already at the end of the verse,
+                # so we can instead store the previous index position
+                # within last_character_index.
+                last_character_index = position_within_verse -1
                 break
+
         df_word_index_list.append({'first_character_index':index, 
             'last_character_index': last_character_index,
             'word':word})
@@ -411,46 +420,29 @@ within the Bible .csv file).\n")
             word_stats_list = []
             local_start_time = pd.Timestamp.now()
             utc_start_time = pd.Timestamp.now(timezone.utc)
+            first_keypress = 1 # Designates whether or not the player is 
+            # currently making his or her first keypress. This flag, which
+            # will be set to 0 after the first keypress is made,
+            # will help determine whether or not to begin timing the player's
+            # first word.
             typing_start_time = time.time()
             last_character_index = -1 # Initializing this variable with a number
             # that will never occur within the game so that this value won't
             # get interpreted as an actual value
 
-            # This version of the test checks the player's input after
-            # each character is typed. If the player's input is correct
-            # so far, the text will be highlighted green; otherwise,
-            # it will be highlighted red. (This allows the player to be 
-            # notified of an error without the need for a line break
-            # in the console, which could prove distracting.)
-            # This function has been tested on Windows, but not yet 
-            # on Mac or Linux. The use of the Colorama library should
-            # make it cross-platform, however.
-            verse_response = '' # This string will store the player's 
-            # response.
-            no_mistakes = 1 # This flag will get set to 0 if the player makes
-            # a mistake. If it remains at 1 throughout the race, then
-            # a mistake-free race will get logged in results_table.
-            previous_line_count = 1
-            backspace_count = 0
-            incorrect_character_count = 0
-            correct_consecutive_entries = 0 # Keeps track of the number
-            # of correct characters typed in a row. Both incorrect characters
-            # and backspace keypresses will reset this value to 0.
-            character_timestamp_list = []
-            character_time_list = []
-            character_stats_list = []
-            word_stats_list = []
-            local_start_time = pd.Timestamp.now()
-            utc_start_time = pd.Timestamp.now(timezone.utc)
-            typing_start_time = time.time()
-            last_character_index = -1 # Initializing this variable with a number
-            # that will never occur within the game so that this value won't
-            # get interpreted as an actual value
-
-            while True: # This while loop allows the player to enter multiple characters.
+            while True: # This while loop allows the player to 
+                # enter multiple characters.
+                # The following if statement determines whether to 
+                # begin timing the player's first word. Timing will only
+                # begin if the first character does indeed start a word
+                # (e.g. it's not a punctuation symbol) and 
+                # the player has not entered any characters yet.
+                # This prevents the backspace key from restarting
+                # the timing clock.
                 if (len(verse_response) == 0) & (
-                    0 in df_word_index_list['first_character_index'].to_list()):
-                    word_start_time = time.time()
+                    0 in df_word_index_list['first_character_index'].to_list()
+                    ) & (first_keypress == 1):
+                    word_start_time = typing_start_time
                     last_character_index = df_word_index_list.query(
                         'first_character_index == 0').copy().iloc[0][
                             'last_character_index']
@@ -463,6 +455,7 @@ within the Bible .csv file).\n")
                 character = getch() # getch() allows each character to be 
                 # checked, making it easier to identify mistyped words.
                 character_press_time = time.time()
+                first_keypress = 0
 
                 if character == b'\x08': 
                     # This will return True if the user hits backspace.
@@ -552,7 +545,9 @@ within the Bible .csv file).\n")
 
                         if verse_response_minus_one == last_character_index:
                             word_end_time = character_press_time
-                            # print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
+                            # print(f"Finished typing {word} in \
+# {word_end_time - word_start_time} seconds. typed_word_without_mistakes \
+# is set to {typed_word_without_mistakes}.")
                             word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
                             # Other analyses can be added to our 
                             # word stats table later on, so we don't

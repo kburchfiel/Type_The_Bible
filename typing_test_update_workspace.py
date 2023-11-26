@@ -110,46 +110,25 @@ character_stats_list = []
 word_stats_list = []
 local_start_time = pd.Timestamp.now()
 utc_start_time = pd.Timestamp.now(timezone.utc)
+first_keypress = 1 # Designates whether or not the player is 
+# currently making his or her first keypress. This flag, which
+# will be set to 0 after the first keypress is made,
+# will help determine whether or not to begin timing the player's
+# first word.
 typing_start_time = time.time()
 last_character_index = -1 # Initializing this variable with a number
 # that will never occur within the game so that this value won't
 # get interpreted as an actual value
 
-# This version of the test checks the player's input after
-# each character is typed. If the player's input is correct
-# so far, the text will be highlighted green; otherwise,
-# it will be highlighted red. (This allows the player to be 
-# notified of an error without the need for a line break
-# in the console, which could prove distracting.)
-# This function has been tested on Windows, but not yet 
-# on Mac or Linux. The use of the Colorama library should
-# make it cross-platform, however.
-verse_response = '' # This string will store the player's 
-# response.
-no_mistakes = 1 # This flag will get set to 0 if the player makes
-# a mistake. If it remains at 1 throughout the race, then
-# a mistake-free race will get logged in results_table.
-previous_line_count = 1
-backspace_count = 0
-incorrect_character_count = 0
-correct_consecutive_entries = 0 # Keeps track of the number
-# of correct characters typed in a row. Both incorrect characters
-# and backspace keypresses will reset this value to 0.
-character_timestamp_list = []
-character_time_list = []
-character_stats_list = []
-word_stats_list = []
-local_start_time = pd.Timestamp.now()
-utc_start_time = pd.Timestamp.now(timezone.utc)
-typing_start_time = time.time()
-last_character_index = -1 # Initializing this variable with a number
-# that will never occur within the game so that this value won't
-# get interpreted as an actual value
-
-while True: # This while loop allows the player to enter multiple characters.
+while True: # This while loop allows the player to 
+    # enter multiple characters.
+    # The following if statement determines whether to 
+    # begin timing the player's first word. Timing will only
+    # begin
     if (len(verse_response) == 0) & (
-        0 in df_word_index_list['first_character_index'].to_list()):
-        word_start_time = time.time()
+        0 in df_word_index_list['first_character_index'].to_list()
+        ) & (first_keypress == 1):
+        word_start_time = typing_start_time
         last_character_index = df_word_index_list.query(
             'first_character_index == 0').copy().iloc[0][
                 'last_character_index']
@@ -162,6 +141,7 @@ while True: # This while loop allows the player to enter multiple characters.
     character = getch() # getch() allows each character to be 
     # checked, making it easier to identify mistyped words.
     character_press_time = time.time()
+    first_keypress = 0
 
     if character == b'\x08': 
         # This will return True if the user hits backspace.
@@ -239,10 +219,10 @@ while True: # This while loop allows the player to enter multiple characters.
                     1000 * (character_timestamp_list[-1] - 
                     character_timestamp_list[-3])}
                 )
-                print(f"Finished typing {character.decode('ascii')} in \
-{1000 * (character_timestamp_list[-1] - character_timestamp_list[-2])} ms. \
-Finished typing {verse_response[-2:]} in \
-{1000 * (character_timestamp_list[-1] - character_timestamp_list[-3])} ms.")
+#                 print(f"Finished typing {character.decode('ascii')} in \
+# {1000 * (character_timestamp_list[-1] - character_timestamp_list[-2])} ms. \
+# Finished typing {verse_response[-2:]} in \
+# {1000 * (character_timestamp_list[-1] - character_timestamp_list[-3])} ms.")
 
             # Checking whether a word has begun or ended:
             # We're placing these checks within the correct response and
@@ -251,7 +231,7 @@ Finished typing {verse_response[-2:]} in \
 
             if verse_response_minus_one == last_character_index:
                 word_end_time = character_press_time
-                print(f"Finished typing {word} in {word_end_time - word_start_time} seconds.")
+                print(f"Finished typing {word} in {word_end_time - word_start_time} seconds. typed_word_without_mistakes is set to {typed_word_without_mistakes}.")
                 word_stats_list.append({"word":word, "word_duration (ms)": (word_end_time - word_start_time) * 1000, "typed_word_without_mistakes":typed_word_without_mistakes}) 
                 # Other analyses can be added to our 
                 # word stats table later on, so we don't
@@ -274,7 +254,7 @@ Finished typing {verse_response[-2:]} in \
                 word = df_word_index_list.query(
                     'previous_character_index == @verse_response_minus_one').iloc[0][
                         'word']
-                print(f" Started typing {word}.")
+                # print(f" Started typing {word}.")
 
     else:
         no_mistakes = 0 # This flag will remain at 0 for the 
