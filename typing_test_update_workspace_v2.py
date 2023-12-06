@@ -19,7 +19,7 @@ from colorama import just_fix_windows_console, Fore, Back, Style, Cursor
 just_fix_windows_console() # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
 
 
-verse = "There is "# no fear in love; but perfect love casts out fear, because fear has punishment. He who fears is not made perfect in love." # 1 John 4:18
+verse = "There is no fear in love; but perfect love casts out fear, because fear has punishment. He who fears is not made perfect in love." # 1 John 4:18
 print(verse)
 
 # Creating a list of words within the verse that we can use for
@@ -109,6 +109,7 @@ character_time_list = []
 character_stats_list = []
 word_stats_list = []
 code_execution_time_list = []
+unix_start_time = time.time()
 local_start_time = pd.Timestamp.now()
 utc_start_time = pd.Timestamp.now(timezone.utc)
 first_keypress = 1 # Designates whether or not the player is 
@@ -139,7 +140,7 @@ while True: # This while loop allows the player to
         word = df_word_index_list.query(
             'first_character_index == 0').copy().iloc[0][
                 'word']
-        print(f" Started typing {word}.")
+        # print(f" Started typing {word}.")
         typed_word_without_mistakes = 1
         # print(f" {last_character_index}")
     code_execution_end_time = time.perf_counter_ns()
@@ -150,9 +151,6 @@ while True: # This while loop allows the player to
     character = getch() # getch() allows each character to be 
     # checked, making it easier to identify mistyped words.
     character_press_time = time.perf_counter_ns()
-    if first_keypress == 1:
-        pass
-        # time.sleep(2)
     first_keypress = 0
 
     if character == b'\x08': 
@@ -387,17 +385,17 @@ while True: # This while loop allows the player to
     
 
         # Calculating timing statistics at the character level:
-        # Note that each value will be converted from
+        # Note that this value will be converted from
         # nanoseconds to milliseconds.
-        min_character_time = min(character_time_list) / 1000000
         median_character_time = np.median(character_time_list) / 1000000
-        max_character_time= max(character_time_list) / 1000000
 
         # Calculating timing statistics at the word level:
         character_stats_for_latest_test = pd.DataFrame(
             character_stats_list)
         word_stats_for_latest_test = pd.DataFrame(word_stats_list)
         print(f"Code execution stats: Median: {np.median(code_execution_time_list)}, Mean: {np.mean(code_execution_time_list)}, Max: {max(code_execution_time_list)}, Min: {min(code_execution_time_list)}. All execution times: {code_execution_time_list}")
-        print("Typing time:",typing_time)
-        print("Character execution times (in ms)",[character_time / 1000000 for character_time in character_time_list])
+        # print("Typing time:",typing_time)
+        # print("Character keypress times (in ms)",
+        # [character_time / 1000000 for 
+        # character_time in character_time_list])
         break
