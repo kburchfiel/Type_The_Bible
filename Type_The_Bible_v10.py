@@ -29,6 +29,8 @@
 # %% [markdown]
 # Next steps: (Not necessarily in order of importance)
 # 
+# * Create graphs that show trends in accuracy over time.
+# * Create graphs that show which dates had the highest average WPMs. (Use a character cutoff of 5000 so that results aren't skewed as much by single races with particularly high or low counts.)
 # * Finish documenting your v2 print code and the variables/ANSI escape codes that it uses
 # * Improve chart formatting (e.g. add titles, legend names, etc.)
 # * Add documentation to other parts of the code as well
@@ -75,7 +77,11 @@ except:
 # print(run_on_notebook)
 
 # %%
-df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv')
+df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv', index_col = 'Verse_Order')
+df_Bible.sort_index(inplace = True) # Helps ensure that
+# any code that relies on df_Bible's being sorted from the first to the last
+# verse will run correctly
+
 df_Bible
 
 # %%
@@ -134,9 +140,6 @@ decimal_component, random_seed
 rng = np.random.default_rng(random_seed) # Based on
 # https://numpy.org/doc/stable/reference/random/index.html?highlight=random#module-numpy.random
 
-# %%
-df_Bible
-
 # %% [markdown]
 # [This fantastic answer](https://stackoverflow.com/a/23294659/13097194) by Kevin at Stack Overflow proved helpful in implementing user validation code within this program. 
 
@@ -148,6 +151,8 @@ the WEB_Catholic_Version.csv spreadsheet for a list of numbers to enter)\n\
 to select a specific verse.\n\
 You can also enter -2 to receive a random verse that you haven't yet typed\n\
 or -3 to choose the first Bible verse that hasn't yet been typed.")
+    verses_not_yet_typed = df_Bible.query(
+                "Typed == 0").copy().index.to_list()
     while True:
         try:
             response = int(input())
@@ -161,12 +166,7 @@ verse or 0 for a randomly selected verse.")
             # there are 35,379 verses present, so we'll pass 1 (the first verse)
             # and 35,380 (1 more than the last verse, as rng.integers won't 
             # include the final number within the range) to rng.integers().
-        # The next two elif statements will require us to determine which 
-        # verses haven't yet been typed. We can do so by filtering df_Bible
-        # to include only untyped verses.
         elif response == -2:
-            verses_not_yet_typed = list(
-                df_Bible.query("Typed == 0")['Verse_Order'].copy())
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -177,8 +177,6 @@ been typed.")
             return rng.choice(verses_not_yet_typed) # Chooses one of these
             # untyped verses at random
         elif response == -3:
-            verses_not_yet_typed = list(
-                df_Bible.query("Typed == 0")['Verse_Order'].copy())
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -187,7 +185,7 @@ instead.")
             print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
             verses_not_yet_typed.sort() # Probably not necessary, as df_Bible
-            # is already sorted from the first to the last verse.
+            # was already sorted from the first to the last verse.
             return verses_not_yet_typed[0]
         
         else:
@@ -363,22 +361,19 @@ def create_word_table(verse):
     return df_word_index_list
 
 # %%
-def run_typing_test(verse_number, results_table, 
+def run_typing_test(verse_order, results_table, 
     word_stats_table, test_type = 'v2'):
     '''This function calculates how quickly the user types the characters
-    passed to the Bible verse represented by verse_number, then saves those 
+    passed to the Bible verse represented by verse_order, then saves those 
     results to the DataFrame passed to results_table.'''
 
     # Retrieving the verse to be typed:
-    # The index begins at 0 whereas the list of verse numbers begins at 1,
-    # so we'll need to subtract 1 from verse_number in order to obtain
-    # the verse's index.
-    verse = df_Bible.iloc[verse_number-1]['Verse']
-    book = df_Bible.iloc[verse_number-1]['Book_Name']
-    chapter = df_Bible.iloc[verse_number-1]['Chapter_Name']
-    verse_number_within_chapter = df_Bible.iloc[verse_number-1]['Verse_#']
-    verse_number_within_Bible = df_Bible.iloc[
-        verse_number-1]['Verse_Order']
+    # df_Bible uses verse order values for its index, so we can access
+    # verses within df_Bible by passing verse_order to .at[].
+    verse = df_Bible.at[verse_order, 'Verse']
+    book = df_Bible.at[verse_order, 'Book_Name']
+    chapter = df_Bible.at[verse_order, 'Chapter_Name']
+    verse_number_within_chapter = df_Bible.at[verse_order, 'Verse_#']
     
     df_word_index_list = create_word_table(verse)
     # print(df_word_index_list)
@@ -387,7 +382,7 @@ def run_typing_test(verse_number, results_table,
     # in order to simplify the dialogue presented to users during retest
     # attempts.
     print(f"Welcome to the typing test! Your verse to type is {book} \
-{chapter}:{verse_number_within_chapter} (verse {verse_number_within_Bible} \
+{chapter}:{verse_number_within_chapter} (verse {verse_order} \
 within the Bible .csv file).\n")
     if run_on_notebook == False:
         print("Press any key to begin typing!")
@@ -831,7 +826,7 @@ incorrect_characters_as_pct_of_length,
     'Chapter': chapter,
     'Verse #': verse_number_within_chapter,
     'Verse':verse, 
-    'Verse_Order':verse_number_within_Bible})
+    'Verse_Order':verse_order})
     df_latest_result.index.name = 'Test_Number'
     df_latest_result
 
@@ -878,11 +873,12 @@ respectively. Your WPM percentile was {latest_percentile} \
 
     # Updating df_Bible to store the player's results: (This will allow the
     # player to track how much of the Bible he/she has typed so far)
-    df_Bible.at[verse_number-1, 'Typed'] = 1 # Denotes that this verse
-    # has now ben typed
-    df_Bible.at[verse_number-1, 'Tests'] += 1 # Keeps track of how 
+    df_Bible.at[verse_order, 'Typed'] = 1 # Denotes that this verse
+    # has now ben typed. Note that .loc[] would not work here because
+    # we are updating a value, not merely retrieving one.
+    df_Bible.at[verse_order, 'Tests'] += 1 # Keeps track of how 
     # many times this verse has been typed
-    fastest_wpm = df_Bible.at[verse_number-1, 'Fastest_WPM']
+    fastest_wpm = df_Bible.at[verse_order, 'Fastest_WPM']
     if ((pd.isna(fastest_wpm) == True) | (wpm > fastest_wpm)): 
         # In these cases, we should replace the pre-existing Fastest_WPM value
         # with the WPM the player just achieved.
@@ -890,18 +886,18 @@ respectively. Your WPM percentile was {latest_percentile} \
         # wpm > fastest_wpm, blank fastest_wpm values would never get overwritten.
         # Therefore, I chose to also check for NaN values 
         # in the above if statement.
-        df_Bible.at[verse_number-1, 'Fastest_WPM'] = wpm
+        df_Bible.at[verse_order, 'Fastest_WPM'] = wpm
 
     # Autosaving results as separate files: (That way, if the script crashes,
     # the player won't lose all of his/her progress.)
-    if verse_number % 10 == 0: # The autosave will only take place for ~10%
+    if verse_order % 10 == 0: # The autosave will only take place for ~10%
         # of the user's verses, thus saving processing time (and wear
         # on the user's SSD, though I'm not sure how much of a difference
         # this would make for the SSD's longevity).
         try:
             results_table.to_csv('df_results_autosave.csv', index = True)
-            df_Bible.to_csv('WEB_Catholic_Version_for_game_updated_autosave.csv', 
-            index = False)
+            df_Bible.to_csv('WEB_Catholic_Version_for_game_updated_autosave.csv',
+            index = True)
             word_stats_table.to_csv('word_stats_autosave.csv', 
             index = False)
             print("Autosave complete.")
@@ -913,17 +909,20 @@ respectively. Your WPM percentile was {latest_percentile} \
 
 
 # %%
-def select_subsequent_verse(previous_verse_number):
+def select_subsequent_verse(previous_verse_order):
     '''This function allows the player to specify which verse to
     type next, or, alternatively, to exit the game.'''
     print("Press 0 to retry the verse you just typed; \
 1 to type the next verse; 2 to type the next verse that hasn't yet been typed; \
+-3 to select the first verse that hasn't been typed; \
 3 to select a different verse; \
 -1 to save your results and exit; \
 and -2 to save your results without running the analysis \
 portion of the script.") # The analysis portion can take a decent amount of
 # time to run, which is why an option to save without running these analyses
 # was added in. These analyses can then get updated during a later session.
+    verses_not_yet_typed = df_Bible.query(
+    "Typed == 0").copy().index.to_list()
     while True: 
             try:
                 response = int(input())
@@ -931,23 +930,21 @@ portion of the script.") # The analysis portion can take a decent amount of
                 print("Please enter a number.")      
                 continue
             if response == 0:
-                return previous_verse_number
+                return previous_verse_order
             elif response == 1:
-                if previous_verse_number == 35379: # The verse order value
+                if previous_verse_order == 35379: # The verse order value
                     # corresponding to the final verse of Revelation
                     print("You just typed the last verse in the Bible, so \
 there's no next verse to type! Please enter an option other than 1.\n")
                     continue
                 else:
-                    return previous_verse_number + 1
+                    return previous_verse_order + 1
             elif response == 2:
                 # In this case, we'll retrieve a list of verses that haven't
                 # yet been typed; filter that list to include only verses
-                # greater than previous_verse_number; and then select
+                # greater than previous_verse_order; and then select
                 # the first verse within that list (i.e. the next 
                 # untyped verse).
-                verses_not_yet_typed = list(df_Bible.query(
-                    "Typed == 0")['Verse_Order'].copy())
                 if len(verses_not_yet_typed) == 0:
                     print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -957,14 +954,26 @@ instead.")
 been typed.")
                 verses_not_yet_typed.sort() 
                 next_untyped_verses = [verse for verse in verses_not_yet_typed 
-                if verse > previous_verse_number]
+                if verse > previous_verse_order]
                 return next_untyped_verses[0]
+            
+            elif response == -3:
+                if len(verses_not_yet_typed) == 0:
+                    print("Congratulations! You have typed all verses from \
+the Bible, so there are no new verses to type! Try selecting another option \
+instead.")
+                    continue
+                print(f"{len(verses_not_yet_typed)} verses have not yet \
+been typed.")
+                verses_not_yet_typed.sort()
+                return verses_not_yet_typed[0]
+
             elif response == 3:
                 return select_verse()
             elif response in [-1, -2]:
                 return response
-            else: # A number other than -2, -1, 0, 1, 2, or 3 was passed.
-                print("Please enter either -2, -1, 0, 1, 2, or 3.\n")  
+            else: # A number other than one of the above options was passed.
+                print("Please enter a whole number from -3 to 3 (inclusive).\n")  
 
 # %%
 def calculate_current_day_results(df):
@@ -1042,28 +1051,27 @@ by hitting the ` (backtick) key.")
               
               
 
-    verse_number = select_verse()
+    verse_order = select_verse()
     
 
     while True: # Allows the game to continue until the user exits
         results_table, word_stats_table = run_typing_test(
-            verse_number=verse_number, 
+            verse_order=verse_order, 
         results_table=results_table, 
         word_stats_table=word_stats_table,
         test_type = typing_test_version)
         # The game will next share an updated progress report:
         print(calculate_current_day_results(results_table))
         
-        # The player will now be prompted to select a new verse number 
-        # (or to save and quit). This verse_number, provided it is not -1,
-        # will then be passed back to run_typing_test().
-        verse_number = select_subsequent_verse(
-            previous_verse_number=verse_number)
-        if verse_number == -1: # In this case, the game will quit and the 
+        # The player will now be prompted to select a new verse order 
+        # (or to save and quit).
+        verse_order = select_subsequent_verse(
+            previous_verse_order=verse_order)
+        if verse_order == -1: # In this case, the game will quit and the 
             # user's new test results will be saved to results_table.
             run_analyses = 1
             return (results_table, word_stats_table, run_analyses)
-        if verse_number == -2: # In this case, the game will quit and the 
+        if verse_order == -2: # In this case, the game will quit and the 
             # user's new test results will be saved to results_table.
             # However, the analysis portion of the script will be skipped 
             # in order to save time.
@@ -1189,7 +1197,9 @@ Try closing the file and trying again. Press Enter to retry.")
             input()
 
 # %%
-attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = False)
+attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = True)
+# The verse_order index will be stored within this .csv file so that it can
+# be accessed during the subsequent run.
 
 # %%
 attempt_save(df_results, 'results.csv', index = True)
@@ -1222,6 +1232,9 @@ df_Bible['Count'] = 1
 
 # %% [markdown]
 # ### Creating a tree map within Plotly that visualizes the player's progress in typing the entire Bible:
+
+# %%
+print("Creating tree map(s).")
 
 # %%
 # This code is based on https://plotly.com/python/treemaps/
@@ -1261,12 +1274,15 @@ if (run_on_notebook == True) & (extra_analyses == True):
         'Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
 
 # %%
+extra_analyses = True
+
+# %%
 # This variant of the treemap shows each verse as its own box, which results in 
 # a very busy graph that takes a while to load within a web browser
 # (if it even loads at all).
 
 if (run_on_notebook == True) & (extra_analyses == True):
-    fig_tree_map_verses = px.treemap(df_Bible, path = ['Verse_Order'], 
+    fig_tree_map_verses = px.treemap(df_Bible, path = [df_Bible.index], 
                                      values = 'Characters', color = 'Typed')
     fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
     fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', 
@@ -1279,6 +1295,9 @@ if (run_on_notebook == True) & (extra_analyses == True):
 
 # %% [markdown]
 # ### Creating a bar chart that shows the proportion of each book that has been typed so far:
+
+# %%
+print("Creating progress analyses.")
 
 # %%
 df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 
@@ -1372,6 +1391,9 @@ fig_characters_typed_in_each_book_and_chapter
 
 # %% [markdown]
 # # Endurance statistics (e.g. most characters/verses typed over a given time period):
+
+# %%
+print("Analyzing typing activity by period.")
 
 # %% [markdown]
 # ## Calculating the dates with the most characters and verses typed:
@@ -1472,6 +1494,9 @@ fig_top_months_by_characters.write_image(
     'Analyses/top_months_by_characters.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_months_by_characters
+
+# %%
+
 
 # %%
 df_top_months_by_verses = df_results.pivot_table(
@@ -1616,13 +1641,16 @@ fig_top_10m_by_characters.write_image(
 fig_top_10m_by_characters
 
 # %% [markdown]
-# # Analyzing WPM data:
+# # Analyzing WPM and accuracy data:
 # 
 # (Some of this section's code derives from my work in [this script](https://github.com/kburchfiel/typeracer_data_analyzer/blob/master/typeracer_data_analyzer_v2.ipynb).)
 # 
 
+# %%
+print("Creating WPM and accuracy analyses.")
+
 # %% [markdown]
-# Top 20 WPM results:
+# Verses with the highest WPMs:
 
 # %%
 df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(
@@ -1884,6 +1912,7 @@ if len(df_word_stats) == 0:
     run_word_analyses = 0
 else:
     run_word_analyses = 1
+    print("Creating word-level analyses.")
 
 run_word_analyses
 
