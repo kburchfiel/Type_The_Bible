@@ -43,6 +43,7 @@ import plotly.express as px
 from getch import getch # Installed this library using pip install py-getch, not
 # pip install getch. See https://github.com/joeyespo/py-getch
 import numpy as np
+# import statsmodels as sm
 from datetime import datetime, date, timezone # Based on 
 # https://docs.python.org/3/library/datetime.html
 import os
@@ -50,6 +51,10 @@ from colorama import just_fix_windows_console
 # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
 just_fix_windows_console() # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
 
+# Note: You'll also need to have kaleido installed, as it 
+# will get called by Plotly later in the program.
+# For Windows, I ran conda install python-kaleido=0.1.0, since a later
+# version of Kaleido didn't work correctly for me.
 
 # %%
 # I found that Backspace and Ctrl + Backspace mapped to different bytestrings
@@ -70,8 +75,10 @@ else:
 
 
 # %%
-test_response = 'Here is a tesst'
-' '.join(test_response.rstrip().split(' ')[:-1]) + ' '
+from blessed import Terminal # Blessed is a variant of the Blessings library 
+# that also works on Windows. See
+# https://blessed.readthedocs.io/en/latest/intro.html
+term = Terminal()
 
 # %%
 extra_analyses = False
@@ -95,12 +102,6 @@ except:
     run_on_notebook = False
 
 # print(run_on_notebook)
-
-# %%
-from blessed import Terminal # Blessed is a variant of the Blessings library 
-# that also works on Windows. See
-# https://blessed.readthedocs.io/en/latest/intro.html
-term = Terminal()
 
 # %%
 df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv', index_col = 'Verse_Order')
@@ -408,6 +409,18 @@ def run_typing_test(verse_order, results_table,
     # I moved these introductory comments out of the following while loop
     # in order to simplify the dialogue presented to users during retest
     # attempts.
+
+    if run_on_notebook == False:
+        # The following two lines print ANSI escape codes that provide
+        # more space for the introduction, verse, and response.
+        print("\033[1J") # This ANSI escape code clears all text
+        # above the cursor. The print statement is based on
+        # https://en.wikipedia.org/wiki/ANSI_escape_code and
+        # https://github.com/tartley/colorama .
+        print('\033[0;0H') # This line, another ANSI escape code based on the
+        # two links shared above, moves the cursor to 
+        # the top left of the screen.
+
     print(f"Welcome to the typing test! Your verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_order} \
 within the Bible .csv file).\n")
@@ -538,9 +551,8 @@ within the Bible .csv file).\n")
             # it will be highlighted red. (This allows the player to be 
             # notified of an error without the need for a line break
             # in the console, which could prove distracting.)
-            # This function has been tested on Windows, but not yet 
-            # on Mac or Linux. The use of the Colorama library should
-            # make it cross-platform, however.
+            # This function has been tested on Windows and on Linux, but not yet 
+            # on a Mac.
             verse_response = '' # This string will store the player's 
             # response.
             no_mistakes = 1 # This flag will get set to 0 if the player makes
@@ -1014,7 +1026,7 @@ incorrect_characters_as_pct_of_length,
     'Verse_Order':verse_order})
     df_latest_result.index.name = 'Test_Number'
     df_latest_result
-
+    
     # Adding this new row to results_table:
     results_table = pd.concat([results_table, df_latest_result])
     # Note: I could also have used df.at or df.iloc to add a new row
@@ -2091,9 +2103,19 @@ df_results.head(3)
 # ### Evaluating the relationship between backspaces as a % of verse length and WPM:
 
 # %%
+
+# Note: the following code created a runtime error within the pyinstaller-created
+# .exe version of the program, so I'm excluding the "trendline = 'ols'" 
+# component for now. Hopefully I can find a way to get that code to work
+# in the future.
+# fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
+# x = 'Incorrect Characters as % of Verse Length', y = 'WPM', trendline = 'ols')
+# # Note that you can hover over the best fit line to see the regression results.
+
 fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
-x = 'Incorrect Characters as % of Verse Length', y = 'WPM', trendline = 'ols')
-# Note that you can hover over the best fit line to see the regression results.
+x = 'Incorrect Characters as % of Verse Length', y = 'WPM')
+
+
 fig_incorrect_characters_wpm_scatter.write_html('Analyses/incorrect_characters_wpm_scatter.html')
 fig_incorrect_characters_wpm_scatter.write_image('Analyses/incorrect_characters_wpm_scatter.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
