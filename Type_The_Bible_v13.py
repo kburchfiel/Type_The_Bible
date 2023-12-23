@@ -10,16 +10,13 @@
 # %% [markdown]
 # # Instructions for getting started:
 # 
-# If you have just downloaded this game, you'll want to create new copies of the **WEB_Catholic_Version_for_game_updated.csv**, **results.csv**, and **word_stats.csv** files. That way, the files will show your results and progress, not mine. You can do so using the following steps:
+# If you have just downloaded this game, you'll need to make certain updates to the folder directory so that you see your results instead of mine:
 # 
-# 1. Rename the existing versions of these files as **WEB_Catholic_Version_for_game_updated_sample.csv**, **results_sample.csv**, **character_stats_sample.csv**, and **word_stats_sample.csv**
+# 1. Rename WEB_Catholic_Version_for_game_updated_sample.csv as **WEB_Catholic_Version_for_game_updated_sample.csv**; results.csv as **results_sample.csv**; and word_stats.csv as **word_stats_sample.csv**.
 # 
 # 2. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
 # 
-# 3. Make a copy of **blank_results_file.csv** and rename it **results.csv**.
-# 
-# 5. Make a copy of **blank_word_stats_file.csv** and rename it **word_stats.csv**.
-# 
+# 3. Delete everything within the Analyses folder.
 # 
 # You're now ready to play!
 
@@ -436,6 +433,9 @@ def run_typing_test(verse_order, results_table,
         # above the cursor. The print statement is based on
         # https://en.wikipedia.org/wiki/ANSI_escape_code and
         # https://github.com/tartley/colorama .
+        # Using 2J instead of 1J allows for previous lines to remain 
+        # accessible; the user simply has to scroll up to access them.
+        # 1J would clear out all of these lines.
         print('\033[0;0H') # This line, another ANSI escape code based on the
         # two links shared above, moves the cursor to 
         # the top left of the screen.
