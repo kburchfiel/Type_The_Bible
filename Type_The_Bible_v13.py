@@ -432,7 +432,7 @@ def run_typing_test(verse_order, results_table,
     if run_on_notebook == False:
         # The following two lines print ANSI escape codes that provide
         # more space for the introduction, verse, and response.
-        print("\033[1J") # This ANSI escape code clears all text
+        print("\033[2J") # This ANSI escape code clears all text
         # above the cursor. The print statement is based on
         # https://en.wikipedia.org/wiki/ANSI_escape_code and
         # https://github.com/tartley/colorama .
@@ -1360,6 +1360,13 @@ which represents {round(100*proportion_of_Bible_typed, 4)}% of the Bible.")
 # (The following cell was derived from [this script](https://github.com/kburchfiel/typeracer_data_analyzer/blob/master/typeracer_data_analyzer_v2.ipynb) that I wrote.)
 # 
 # These statistics will get recreated whenever the script is run; this approach allows for the results to be revised as needed (e.g. if certain rows are removed from the dataset).
+
+# %%
+# I found that it was necessary to convert the Local_Start_Time field to
+# a datetime value at this point when running the script on my Linux system.
+# This might have been due to library differences between my Linux
+# and Windows systems, however.
+df_results['Local_Start_Time'] = pd.to_datetime(df_results['Local_Start_Time'])
 
 # %%
 df_results['Last 10 Avg'] = df_results['WPM'].rolling(10).mean()
