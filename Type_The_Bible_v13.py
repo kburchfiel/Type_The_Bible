@@ -3,34 +3,35 @@
 # 
 # By Kenneth Burchfiel
 # 
-# Code is released under the MIT license; Bible verses are from the Web English Bible (Catholic Edition)* and are in the public domain.
+# *Code is released under the MIT license; Bible verses are from the Web English Bible (Catholic Edition)* and are in the public domain.*
 # 
 # \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files.
 
 # %% [markdown]
 # # Instructions for getting started:
 # 
-# If you have just downloaded this game, you'll need to make certain updates to the folder directory so that you see your results instead of mine:
+# If you have just downloaded this game, you may need to make certain updates to the folder directory so that you see your results instead of mine:
 # 
-# 1. Rename WEB_Catholic_Version_for_game_updated_sample.csv as **WEB_Catholic_Version_for_game_updated_sample.csv**; results.csv as **results_sample.csv**; and word_stats.csv as **word_stats_sample.csv**.
+# 1. Rename WEB_Catholic_Version_for_game_updated.csv as **WEB_Catholic_Version_for_game_updated_sample.csv**; results.csv as **results_sample.csv**; and word_stats.csv as **word_stats_sample.csv** (if these files are present in the directory).
 # 
-# 2. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
+# 1. Make a copy of **WEB_Catholic_Version_for_game.csv** and rename it **WEB_Catholic_Version_for_game_updated.csv**.
 # 
-# 3. Delete everything within the Analyses folder.
+# 1. Delete the Analyses folder (if it already exists).
 # 
 # You're now ready to play!
 
 # %% [markdown]
-# ## More documentation to come!
-
-# %% [markdown]
-# Next steps: (Not necessarily in order of importance)
+# Next steps for development: (Not necessarily in order of importance)
 # 
-# * Improve chart formatting (e.g. add titles, legend names, etc.)
 # * Add documentation
-# * Revise file names or create a renaming script so that users won't need to manually rename them.
 # * Create a regression analysis that attempts to use data about the verse (length, number of capital letters, etc.)
 # * Add in a help/disclaimer/credits/dedication section
+
+# %% [markdown]
+# This file shows the source code for Type Through The Bible. I am working to add in documentation to make the code more intuitive.
+
+# %% [markdown]
+# We'll first import a number of libraries:
 
 # %%
 import pandas as pd
@@ -46,12 +47,15 @@ from datetime import datetime, date, timezone # Based on
 import os
 from colorama import just_fix_windows_console
 # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
-just_fix_windows_console() # From https://github.com/tartley/colorama/blob/master/demos/demo01.py
+# The following line allows ANSI escape codes to display correctly on Windows.
+# For more information, see # https://github.com/tartley/colorama .
+just_fix_windows_console() 
 
 # Note: You'll also need to have kaleido installed, as it 
 # will get called by Plotly later in the program.
 # For Windows, I ran conda install python-kaleido=0.1.0, since a later
-# version of Kaleido didn't work correctly for me.
+# version of Kaleido didn't work correctly for me. It wasn't necessary
+# to specify the version of kaleido on Linux.
 
 # %%
 # I found that Backspace and Ctrl + Backspace mapped to different bytestrings
@@ -73,12 +77,15 @@ else:
 
 # %%
 from blessed import Terminal # Blessed is a variant of the Blessings library 
-# that also works on Windows. See
-# https://blessed.readthedocs.io/en/latest/intro.html
+# that also works on Windows. This library contains a very useful function
+# for retrieving the current coordinates of the text cursor; this information
+# will prove very useful during gameplay.
+#  See https://blessed.readthedocs.io/en/latest/intro.html
 term = Terminal()
 
 # %%
-extra_analyses = False
+extra_analyses = False # If set to True, additional analyses will be created, 
+# but only when the program is run as a Jupyter notebook.
 
 # %% [markdown]
 # Checking whether the program is currently running on a Jupyter notebook:
@@ -102,9 +109,14 @@ except:
 
 # %% [markdown]
 # Importing Bible verses into the program:
+# 
+# (This file derives from Bible_csv_generator.ipynb.)
 
 # %%
-df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv', index_col = 'Verse_Order')
+df_Bible = pd.read_csv('WEB_Catholic_Version_for_game_updated.csv', 
+index_col = 'Verse_Order') # Setting Verse_Order (the position of each verse
+# within the entire Bible) as the index column will simplify the process
+# of updating this file.
 df_Bible.sort_index(inplace = True) # Helps ensure that
 # any code that relies on df_Bible's being sorted from the first to the last
 # verse will run correctly
@@ -113,9 +125,15 @@ df_Bible
 
 # %% [markdown]
 # The script will now search the local directory for 'results.csv' and 'word_stats.csv', files used to store various typing statistics. If the script doesn't find these, it will go ahead and create blank DataFrames that will be replaced with actual results after the player completes a typing test.
+# 
+# The script will also create an 'Analyses' folder for storing typing stats and visualizations if this folder does not already exist.
 
 # %%
 local_dir = os.listdir()
+if 'Analyses' not in local_dir:
+    print("Analyses folder was not found within the directory. Adding this \
+folder now.")    
+    os.mkdir('Analyses')
 if 'results.csv' not in local_dir:
     print("results.csv was not found within the directory. A new copy \
 will be created.")    
@@ -134,8 +152,10 @@ df_results
 # %%
 if len(df_results) > 0: # If df_results is empty, then there's
     # no need to attempt to convert its (non-existent) values.
-    df_results['Local_Start_Time'] = pd.to_datetime(df_results['Local_Start_Time']).astype('datetime64[us]')
-    df_results['UTC_Start_Time'] = pd.to_datetime(df_results['UTC_Start_Time']).astype('datetime64[us, UTC]')
+    df_results['Local_Start_Time'] = pd.to_datetime(
+    df_results['Local_Start_Time']).astype('datetime64[us]')
+    df_results['UTC_Start_Time'] = pd.to_datetime(
+    df_results['UTC_Start_Time']).astype('datetime64[us, UTC]')
     df_results['WPM'] = df_results['WPM'].astype('float') # Prevents a glitch
     # that can be caused when this column is stored as an object.
 df_results
@@ -169,12 +189,13 @@ df_word_stats
 # to lose our 'Test_Number' values
 # df_results
 
-# %%
-# Creating an RNG seed:
-# In order to make the RNG values a bit more random, the following code will
-# derive the RNG seed from the decimal component of the current timestamp.
-# This seed will change 1 million times each second.
+# %% [markdown]
+# ### Creating an RNG seed:
+# 
+# In order to make the RNG values a bit more random, the following code will derive the RNG seed from the decimal component of the current timestamp. This seed will change 1 million times each second.
+# 
 
+# %%
 # Using the decimal component of time.time() to select an RNG seed:
 current_time = time.time()
 decimal_component = current_time - int(current_time) # This 
@@ -193,16 +214,35 @@ rng = np.random.default_rng(random_seed) # Based on
 # https://numpy.org/doc/stable/reference/random/index.html?highlight=random#module-numpy.random
 
 # %% [markdown]
-# [This fantastic answer](https://stackoverflow.com/a/23294659/13097194) by Kevin at Stack Overflow proved helpful in implementing user validation code within this program. 
+# ## Defining Gameplay Functions:
+# 
+# The script will now define a series of functions that will allow the user to select verses to type; enter responses; and view gameplay statistics.
 
 # %%
+# [This fantastic answer](https://stackoverflow.com/a/23294659/13097194) by 
+# Kevin at Stack Overflow proved helpful in implementing 
+# entry validation code within this program. 
+
 def select_verse():
+    '''This function allows the player to select an initial Bible verse 
+    to type. The player can choose a random verse; a verse that hasn't
+    been typed; or a specific verse.
+    The player can also choose to enable an autostart mode, which automatically
+    commences new typing tests.
+    This function returns the verse to type followed by a boolean value
+    that specifies whether autostart is active.''' 
+
     print("Select a verse to type! Enter 0 to receive a random verse\n\
 or enter a verse number (see 'Verse_Order column of\n\
 the WEB_Catholic_Version.csv spreadsheet for a list of numbers to enter)\n\
 to select a specific verse.\n\
-You can also enter -2 to receive a random verse that you haven't yet typed\n\
-or -3 to choose the first Bible verse that hasn't yet been typed.")
+You can also enter -2 to receive a random verse that you haven't yet typed,\n\
+-3 to choose the first Bible verse that hasn't yet been typed,\n\
+or -4 to enable autostart (which automatically begins a typing test for\n\
+the subsequent verse after you finish typing a verse). Autostart can be\n\
+canceled by hitting the ` key in version v2 of the typing test or by entering\n\
+'exit' as the response in version v1. ")
+    
     verses_not_yet_typed = df_Bible.query(
                 "Typed == 0").copy().index.to_list()
     while True:
@@ -213,12 +253,13 @@ or -3 to choose the first Bible verse that hasn't yet been typed.")
 verse or 0 for a randomly selected verse.")
             continue # Allows the user to retry entering a number
 
-        if response == 0:
-            return rng.integers(1, 35380) # Selects any verse within the Bible.
-            # there are 35,379 verses present, so we'll pass 1 (the first verse)
-            # and 35,380 (1 more than the last verse, as rng.integers won't 
-            # include the final number within the range) to rng.integers().
-        elif response == -2:
+        if response == 0: # A random verse will be selected.
+            return (rng.integers(1, len(df_Bible) + 1), False) 
+            # The number of verses within the Bible .csv file is equal to 
+            # len(df_Bible), so we'll pass 1 (the first verse) and 
+            # len(df_Bible) + 1 to rng.integers (as this function won't 
+            # include the final number within the range.)
+        elif response == -2: # A random verse not yet typed will be selected.
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -226,9 +267,9 @@ instead.")
                 continue
             print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
-            return rng.choice(verses_not_yet_typed) # Chooses one of these
-            # untyped verses at random
-        elif response == -3:
+            return (rng.choice(verses_not_yet_typed), False)
+            # Chooses one of these untyped verses at random
+        elif response == -3: # The first verse not yet typed will be selected.
             if len(verses_not_yet_typed) == 0:
                 print("Congratulations! You have typed all verses from \
 the Bible, so there are no new verses to type! Try selecting another option \
@@ -238,26 +279,38 @@ instead.")
 been typed.")
             verses_not_yet_typed.sort() # Probably not necessary, as df_Bible
             # was already sorted from the first to the last verse.
-            return verses_not_yet_typed[0]
+            return (verses_not_yet_typed[0], False)
         
-        else:
+        elif response == -4: # This option will enable autostart.
+            if len(verses_not_yet_typed) == 0: # If all verses have already
+                # been typed, autostart mode will begin with the first verse.
+                return (1, True)
+            else: # In this case, the first verse not yet typed will
+                # be returned. (The player can commence autostart with
+                # a different verse later on in a gameplay session.)
+                return (verses_not_yet_typed[0], True)
+        
+        else: # In this case, the player either submitted a valid verse number
+            # or an invalid entry.
             if ((response >= 1) 
-            & (response <= 35379)): # Making sure that the response is 
-                # an integer between 1 and 35,379 (inclusive) so that it 
+            & (response <= len(df_Bible))): # Making sure that the response is 
+                # an integer between 1 and the length of df_Bible so that it 
                 # matches one of the Bible verse numbers present:                    
-                return response
+                return (response, False) # The user entered a valid verse
+                # number, so this number will get returned by the function.
             else: # Will be called if a non-integer number was passed
                     # or if the integer didn't correspond to a Bible verse
                     # number. 
-                print("Please enter an integer between 1 and 35,379.") # Since
-                # we're still within a While loop, the user will be returned
+                print("Please enter an integer that corresponds to one of the \
+verse numbers within the Bible .csv file.") # Since
+                # we're still within a While loop, the player will be returned
                 # to the initial try/except block.
 
 
 # %%
 def create_word_table(verse):
-    '''Creating a list of words within the verse that we can use for
-    word-based typing test analyses:
+    '''This function creates a list of words within the verse that can be used
+    for word-based analyses.
     We could use verse.split(' ') to create a list of words. However,
     since our goal is to build a list that can then serve as the basis
     of analyses, we'll want to create a list that includes:
@@ -272,7 +325,11 @@ def create_word_table(verse):
     This function also counts contractions ('don't', 'can't,
     etc.) as individual words. Some care is needed to distinguish between
     apostrophes/single quotes that begin contractions and those that start
-    or end single quotes.'''
+    or end single quotes.
+    
+    The function begins by identifying the first letter of each word in the
+    verse. It then determines the final letter of each word, then returns
+    a DataFrame with information about the words in the verse.'''
 
     first_letter_index_list = []
     # Determining the indices of the verse that contain starting letters of
@@ -339,7 +396,6 @@ def create_word_table(verse):
 
 
     # print(first_letter_index_list)
-
 
     # Now that we've determined the index of each word's starting letter,
     # we will go through the verse again to locate the final letter
@@ -410,10 +466,17 @@ def create_word_table(verse):
 
 # %%
 def run_typing_test(verse_order, results_table, 
-    word_stats_table, test_type = 'v2'):
-    '''This function calculates how quickly the user types the characters
+    word_stats_table, test_type = 'v2', autostart = False):
+    '''This function, which runs a typing test for an individual verse,
+    makes up the core of Type Through The Bible's gameplay.
+    It calculates how quickly the user types the characters
     passed to the Bible verse represented by verse_order, then saves those 
-    results to the DataFrame passed to results_table.'''
+    results to the DataFrame passed to results_table. Word-level results
+    are saved to word_stats_table.
+    if autostart is set to True, the function will automatically begin
+    the typing test, which saves the player a little bit of time (but
+    makes for a more intense gameplay experience).
+    '''
 
     # Retrieving the verse to be typed:
     # df_Bible uses verse order values for its index, so we can access
@@ -435,7 +498,7 @@ def run_typing_test(verse_order, results_table,
         # https://github.com/tartley/colorama .
         # Using 2J instead of 1J allows for previous lines to remain 
         # accessible; the user simply has to scroll up to access them.
-        # 1J would clear out all of these lines.
+        # 1J would clear out all of these lines (at least on Windows).
         print('\033[0;0H') # This line, another ANSI escape code based on the
         # two links shared above, moves the cursor to 
         # the top left of the screen.
@@ -447,21 +510,24 @@ def run_typing_test(verse_order, results_table,
     print(f"Welcome to the typing test! Your verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_order} \
 within the Bible .csv file).\n")
-    if run_on_notebook == False:
+    if run_on_notebook == False: # In this case, the typing test 
+        # will begin after any keypress due to the use of getch().
         print("Press any key to begin typing!")
     else:
         print("Press Enter to begin the test!")
     
-    complete_flag = 0
-    while complete_flag == 0:
+    complete_flag = 0 # This value will only get set to 1 after the 
+    # user has successfully finished a typing test.
+    while complete_flag == 0: # This while loop will continue to run
+        # until the user has completed a test.
         print(f"Here is the verse:\n\n{verse}") 
 
         if run_on_notebook == False: # The following line crashed for me
             # when running the program within a notebook (likely because
             # no terminal is present in that case).
-            # V2 of the typing test uses terminal width and height information to
-            # determine how to display the player's input. These values will be
-            # determined via os.get_terminal_size() at the time that the test begins
+            # V2 of the typing test uses terminal width and 
+            # height information to determine how to display the player's input. 
+            # These values will be determined via os.get_terminal_size() below
             # so that the code can run correctly with different terminal 
             # configurations.
             terminal_width, terminal_height = os.get_terminal_size()
@@ -487,7 +553,7 @@ within the Bible .csv file).\n")
             cursor_y_pos, cursor_x_pos = term.get_location()
             # print(cursor_y_pos, terminal_height)
             if (cursor_y_pos + 1) < terminal_height: # E.g. if the line below
-            # the cursor is not the last line in the terminal or one below it.
+            # the cursor is not the last line in the terminal or one below it
             # I found that cursor_y_pos always seemed to be at least one row 
             # less than terminal_height even
             # if it appeared to be at the bottom of the terminal,
@@ -511,9 +577,6 @@ within the Bible .csv file).\n")
         else:
             column_width = 120 # The default terminal column width on my
             # copy of Windows
-            
-
-
 
         if run_on_notebook == False: # In this case, we can use getch()
             # to begin the test.
@@ -527,47 +590,20 @@ within the Bible .csv file).\n")
         # cause the player's right hand to leave the default home row position,
         # which could end up slowing him/her down. getch() allows any character
         # to be pressed (such as the space bar) and thus avoids this issue.
+            if autostart == False: # If autostart is True, the player has
+                # chosen to automatically start the test, so the following
+                # line can be skipped (thus causing the test to begin
+                # right away).
+                start_character = getch() # See https://github.com/joeyespo/py-getch
 
-            start_character = getch() # See https://github.com/joeyespo/py-getch
-        
         else: # When running the program within a Jupyter notebook, I wasn't
             # able to enter input after getch() was called, so I added
             # input() below as an alternative start option.
-            input()
+            if autostart == False:
+                input()
      
         print("Start!")      
-        if test_type == 'v1': 
-            # This is a simple typing test setup that receives input from
-            # the user when 'Enter' is pressed, then checks that input
-            # against the verse. Because it doesn't check the response
-            # for accuracy as the player types, the player might not realize
-            # a character was mistyped until the very end, which can get
-            # frustrating. Therefore, I've now added in a new version
-            # of the test (called 'v2') that can be used instead. 
-            no_mistakes = np.NaN
-            backspaces_as_pct_of_length = np.NaN
-            incorrect_characters_as_pct_of_length = np.NaN
-            unix_start_time = time.time()
-            local_start_time = pd.Timestamp.now()
-            utc_start_time = pd.Timestamp.now(timezone.utc)
-            # I used to use ISO8601-compatible timestamps via the following
-            # lines, but decided to switch to a value that Pandas would 
-            # immediately recognize as a datetime.
-            # local_start_time = datetime.now().isoformat()
-            # utc_start_time = datetime.now(timezone.utc).isoformat()
-
-            typing_start_time = time.perf_counter_ns()
-            verse_response = input() 
-            # The following code will execute once the player finishes typing and
-            # hits Enter. (Having the program evaluate the player's entry only after
-            # 'Enter' is pressed isn't the best option, as the time required to
-            # hit Enter will reduce the player's reported WPM. Version v2, 
-            # shown below, stops the test right when the final correct
-            # character is typed, which will make the final WPM slightly faster.
-            typing_end_time = time.perf_counter_ns()
-            typing_time = (typing_end_time - typing_start_time) / 1000000000
-
-        elif test_type == 'v2':
+        if test_type == 'v2':
             # This version of the test checks the player's input after
             # each character is typed. If the player's input is correct
             # so far, the text will be highlighted green; otherwise,
@@ -581,10 +617,14 @@ within the Bible .csv file).\n")
             no_mistakes = 1 # This flag will get set to 0 if the player makes
             # a mistake. If it remains at 1 throughout the race, then
             # a mistake-free race will get logged in results_table.
-            previous_line_count = 1
-            backspace_count = 0
-            incorrect_character_count = 0
-            word_stats_list = []
+            incorrect_character_count = 0 # Will store how many incorrect
+            # keypresses have been entered, thus allowing accuracy 
+            # statistics to be calculated.
+            backspace_count = 0 # Keeps track of how many backspaces the user
+            # has entered. This is a less precise measure of accuracy
+            # than incorrect_character_count, since a single backspace can
+            # potentially clear out an entire word.
+            word_stats_list = [] # Will store WPM stats at the word level.
             # code_execution_time_list = []
 
             # The following two lists will keep track of first- and last-letter
@@ -596,7 +636,8 @@ within the Bible .csv file).\n")
             # last_letter_indices_reached. This will prevent duplicate 
             # timing entries for the same word from getting added to the word
             # stats list; in addition, it will prevent the player from
-            # 'resetting' the timing for a given word by returning to its index.
+            # 'resetting' the timing for a given word by returning to its 
+            # first letter.
             first_letter_indices_reached = []
             last_letter_indices_reached = []
 
@@ -606,54 +647,75 @@ within the Bible .csv file).\n")
             # will help determine whether or not to begin timing the player's
             # first word.
             last_letter_index = -1 # Initializing this variable with a number
-            # that will never occur within the game so that this value won't
-            # get interpreted as an actual word starting point.
+            # that will never occur within the game ensures that this value 
+            # won't get interpreted as an actual word starting point.
 
             unix_start_time = time.time()
             local_start_time = pd.Timestamp.now()
             utc_start_time = pd.Timestamp.now(timezone.utc)
+            # I used to use ISO8601-compatible timestamps via the following
+            # lines, but decided to switch to a value that Pandas would 
+            # immediately recognize as a datetime.
+            # local_start_time = datetime.now().isoformat()
+            # utc_start_time = datetime.now(timezone.utc).isoformat()
+
             typing_start_time = time.perf_counter_ns()
-            # Using perf_counter_ns() allows for more accurate time duration
-            # calculations than does time.time(). See
-            # https://docs.python.org/3/library/time.html#time.perf_counter_ns
-
-
+            # perf_counter_ns()
+            # measures time at the nanosecond level, which makes for more
+            # accurate timing stats, at least on Windows.
+            # See https://stackoverflow.com/questions/31526179/most-precise-timing-function-in-python#comment136785349_31526179
+            # and https://docs.python.org/3/library/time.html#time.perf_counter_ns
+            # for more details.
+            
             while True: # This while loop allows the player to 
                 # enter multiple characters.
                 # The following if statement determines whether to 
-                # begin timing the player's first word. Timing will only
-                # begin
+                # begin timing the player's first word right after
+                # the test begins. Timing will only
+                # begin if the length of the response is 0; the player
+                # is making his/her first keypress; and the letter is the 
+                # first letter of a word in df_word_index.
                 if (len(verse_response) == 0) & (
                     0 in df_word_index_list['first_letter_index'].to_list()
                     ) & (first_keypress == 1):
                     word_start_time = typing_start_time
                     last_letter_index = df_word_index_list.query(
                         'first_letter_index == 0').copy().iloc[0][
-                            'last_letter_index']
+                            'last_letter_index'] # This line retrieves
+                    # the index of the last letter of the word so that
+                    # the function can stop timing this word once
+                    # the last character has been typed successfully.
                     word = df_word_index_list.query(
                         'first_letter_index == 0').copy().iloc[0][
                             'word']
                     first_letter_indices_reached.append(0)
                     # print(f" Started typing {word}.")
-                    typed_word_without_mistakes = 1
+                    typed_word_without_mistakes = 1 # This flag will be changed
+                    # to 0 if the player makes an incorrect keystroke in the
+                    # process of typing the word.
                     # print(f" {last_letter_index}")
                 # code_execution_end_time = time.perf_counter_ns()
                 # if first_keypress == 0: 
-                #     code_execution_time_list.append((code_execution_end_time - character_press_time) / 1000000)
-                    # We divide by 1,000,000 to convert from nanoseconds (the output
+                #     code_execution_time_list.append(
+                    # (code_execution_end_time - character_press_time) 
+                    # / 1000000)
+                    # We divide by 1,000,000 to convert from nanoseconds 
+                    # (the output
                     # of perf_counter_ns() to milliseconds.
                 character = getch() # getch() allows each character to be 
                 # checked, making it easier to identify mistyped words.
-                # The following lines assume that character is stored as a bytestring
-                # rather than as a string. (I initially developed this game within
-                # Windows, in which getch() returns a bytestring.) However, I found
-                # that getch() returned strings when I tested out the code in Linux.
-                # Therefore, the following if statement was added in to convert
-                # these strings to bytestrings.
+                # The following lines assume that character is stored as a 
+                # bytestring rather than as a string. (I initially developed 
+                # this game within Windows, in which getch() returns 
+                # a bytestring.) However, I found that getch() returned strings 
+                # within Linux. Therefore, the following if statement was added 
+                # in to convert these strings to bytestrings.
                 if type(character) == str:
                     character = character.encode()
-                character_press_time = time.perf_counter_ns()
-                first_keypress = 0
+                character_press_time = time.perf_counter_ns() # This value
+                # will be helpful for calculating word-level typing durations.
+                first_keypress = 0 # This flag will remain at 0 for the rest
+                # of the test.
 
                 if character == character_backspace: 
                     # In this case, we'll want to remove the latest character
@@ -666,24 +728,27 @@ within the Bible .csv file).\n")
                 elif character == word_backspace: 
                     # The following code allows this sequence to remove the last
                     # word typed, which is often a faster deletion method than
-                    # pressing the backspace key repeatedly.
-                    verse_response = ' '.join(verse_response.rstrip().split(' ')[:-1])
-                    # The above line first removes all spaces from the right of the last
-                    # word typed so that they won't interfere with the split() call.
-                    # It then splits the response into individual words; deselects
-                    # the last word; and joins the response back together.
-                    if len(verse_response) != 0: # As long as we're not at the start
-                        # of the console, it will be useful to add the space after
-                        # the last word back in so that the player doesn't need
-                        # to retype it.
+                    # is pressing the backspace key repeatedly.
+                    verse_response = ' '.join(verse_response.rstrip(
+                        ).split(' ')[:-1])
+                    # The above line first removes all spaces from the right 
+                    # of the last word typed so that they won't interfere 
+                    # with the split() call. It then splits the response into 
+                    # individual words; deselects the last word; and joins 
+                    # the response back together.
+                    if len(verse_response) != 0: # As long as we're not at 
+                        # the start of the console, it will be useful 
+                        # to add the space after the last word back in so that 
+                        # the player doesn't need to retype it.
                         verse_response += ' '
-                    backspace_count += 1 # I was considering increasing backspace_count
-                    # here by the number of characters removed through Ctrl + Backspace,
-                    # but since the player still only has to press Backspace once
-                    # in this operation, I decided to still increment it by one.
-                    # This means that backspace_count may diverge significantly
-                    # from incorrect_character_count and thus be a poorer measure
-                    # of accuracy.
+                    backspace_count += 1 # I was considering increasing 
+                    # backspace_count here by the number of characters removed 
+                    # through Ctrl + Backspace, but since the player only 
+                    # has to press Backspace once in this operation, I decided 
+                    # to still increment it by one. This means that 
+                    # backspace_count may diverge significantly
+                    # from incorrect_character_count and thus 
+                    # be a poorer measure of accuracy.
                     typed_word_without_mistakes = 0
                 elif character == b'`':
                     print('\033[0m') # This ANSI escape code resets
@@ -691,96 +756,119 @@ within the Bible .csv file).\n")
                     # and [0m specifies what action should be performed.
                     # The Colorama documentation, available at
                     # https://pypi.org/project/colorama/ ,
-                    # and Wikipedia's ANSI esacpe code page
+                    # and Wikipedia's ANSI escape code page
                     # (https://en.wikipedia.org/wiki/ANSI_escape_code)
-                    # proved to be very helpful resources in adding escape codes
-                    # into this game.
+                    # helped me add escape codes into this game.
                     # Colorama's STYLE.RESET_ALL variable could be used here
                     # instead, but I decided to use actual ANSI escape codes
                     # where possible.
-                    verse_response += character.decode('ascii') # The presence
-                    # of this character within verse_response will instruct
-                    # the program to exit the user out of this test later on.
-                    # See https://pypi.org/project/colorama/
+                    verse_response += character.decode('ascii') # Adding
+                    # this character to verse_response will allow the program
+                    # to use its presence within that string to exit the player
+                    # out of this test later on.
                     break
                 else: 
-                    # The following line adds the latest character typed
-                    # to verse_response.
+                    # The following try/except block attempts to add
+                    # the latest character typed to verse_response.
                     try:
                         verse_response += character.decode('ascii')  
                         # See https://stackoverflow.com/questions/17615414/how-to-convert-binary-string-to-normal-string-in-python3
                     except: # Keys that fall out of the ascii subset, such as 
-                        # arrow keys, could cause the above line to crash. Therefore,
-                        # when the above line fails to work, the following 'continue'
-                        # statement will allow the program to ignore the key and move
-                        # back to the beginning of the loop.
+                        # arrow keys, could cause the above line to crash. 
+                        # Therefore, when the above line fails to work, the 
+                        # following 'continue' statement will allow the program 
+                        # to ignore the key and move back to the beginning 
+                        # of the loop.
+                        incorrect_character_count += 1 # It's assumed that
+                        # a character that could not be successfully decoded
+                        # reflected an incorrect keypress.
                         continue
 
                 # Determining which color to use for the text:
-                if verse[0:len(verse_response)] == verse_response: # If this returns
-                    # True, the player's response is correct so far.
+                if verse[0:len(verse_response)] == verse_response: # If this 
+                    # returns True, the player's response is correct so far.
                     text_color = '\033[32m' # This ANSI escape code will make
-                    # all of the text that follows it green, indicating to the player
-                    # that he/she has typed the text correctly so far.
+                    # all of the text that follows it green, indicating that
+                    # that the player has typed the text correctly so far.
                     # For the use of Colorama to produce red and green text, see
                     # https://pypi.org/project/colorama/
                     # and https://stackoverflow.com/a/3332860/13097194 .
                     # Colorama's Fore.GREEN could be used here instead.
 
-                    # Adding the time it took to type the last character
-                    # to the list: (Note that the time it takes to 
-                    # enter a backspace won't be included.)
-                    verse_response_minus_one = len(verse_response) -1 # The character
-                    # Index values in df_word_index_list start at 0, so this variable
-                    # will help us convert between verse lengths and index positions.        
+                    # Performing word-level analyses:
+                    verse_response_minus_one = len(verse_response) -1 # The 
+                    # character index values in df_word_index_list start at 0, 
+                    # so this variable will help us convert between verse 
+                    # lengths and index positions.        
                     
-                    if (character != character_backspace) & (character != word_backspace):
+                    if ((character != character_backspace) & 
+                        (character != word_backspace)): # in this case,
+                        # the last character was neither a backspace nor
+                        # a Ctrl + Backspace combo.
 
                         # Checking whether a word has begun or ended:
-                        # We're placing these checks within the correct response and
-                        # no backspace clauses so that a typo or backspace won't
-                        # count as having correctly begun or ended a word. (I'm not sure
-                        # it would actually be possible to trigger the word start or 
-                        # end checks with Ctrl + Backspace, but I'll include it here
-                        # just in case a clever user figures out how.)
+                        # We're placing these checks within the correct 
+                        # response and no backspace clauses so that a typo or 
+                        # backspace won't count as having correctly begun or 
+                        # ended a word. (I'm not sure it would actually be 
+                        # possible to trigger the word start or 
+                        # end checks with Ctrl + Backspace, but I'll include 
+                        # it here just in case a clever player figures out how.)
                         # Note that last_letter_indices_reached and 
                         # first_letter_indices_reached will be checked for the
                         # presence of verse_response_minus_one. If it's already
                         # there, then no action will be taken, as timing
                         # for that word has already ended or started.
 
-                        # Checking whether the player has finished typing a word:
+                        # Checking whether the player has finished 
+                        # typing a word:
                         if (verse_response_minus_one == last_letter_index) & (
-                            last_letter_index not in last_letter_indices_reached):
+                            last_letter_index not in 
+                            last_letter_indices_reached): # The user has 
+                            # finished correctly typing the current word for the 
+                            # first time
                             word_end_time = character_press_time
                             # print(f"Finished typing {word} in \
             # {(word_end_time - word_start_time) / 1000000} ms. typed_word_without_mistakes \
             # is set to {typed_word_without_mistakes}.")
+                            # Adding word-level statistics to word_stats_list:
+                            # (Note that word_end_time - word_start_time is 
+                            # divided by one million to convert it from
+                            # nanoseconds to milliseconds.
                             word_stats_list.append({"word":word, 
                             "word_duration (ms)": (word_end_time - 
                             word_start_time) / 1000000, 
-                            "typed_word_without_mistakes":typed_word_without_mistakes})
-                            last_letter_indices_reached.append(last_letter_index)
+                            "typed_word_without_mistakes":
+                            typed_word_without_mistakes})
+                            last_letter_indices_reached.append(
+                                last_letter_index)
                             # Other analyses can be added to our 
                             # word stats table later on, so we don't
                             # need to compute them now.
 
-                        # Checking whether the player has started typing a word:
+                        # Checking whether the player has reached the starting
+                            # point of a new word:
                         if (verse_response_minus_one in df_word_index_list[
                             'previous_character_index'].to_list()) & (
-                            verse_response_minus_one not in first_letter_indices_reached):
+                            verse_response_minus_one not in 
+                            first_letter_indices_reached):
                             # If this returns true, we know we're
                             # at the starting point of a new word.
-                            # print(verse_response_minus_one, df_word_index_list['previous_character_index'])
+                            # print(verse_response_minus_one, 
+                            # df_word_index_list['previous_character_index'])
                             # print("Start of new word detected (Point A).")
                             typed_word_without_mistakes = 1
                             verse_response_minus_one = len(verse_response) -1
-                            word_start_time = character_press_time # The start time of 
-                            # this new word is defined as the time that the character 
-                            # preceding the word was pressed.
+                            word_start_time = character_press_time # The start 
+                            # time of this new word is defined as the time 
+                            # that the character preceding the word was pressed.
+                            # Updating last_letter_index with the location
+                            # of the final letter within this word:
                             last_letter_index = df_word_index_list.query(
                             "previous_character_index == @verse_response_minus_one").iloc[
                             0]['last_letter_index']
+                            # Updating 'word' with the word that begins
+                            # after previous_character_index:
                             word = df_word_index_list.query(
                             "previous_character_index == @verse_response_minus_one").iloc[
                             0]['word']
@@ -788,13 +876,14 @@ within the Bible .csv file).\n")
                             first_letter_indices_reached.append(
                             verse_response_minus_one)
 
-                else:
+                else: # In this case, the most recent keystroke was a typo.
                     no_mistakes = 0 # This flag will remain at 0 for the 
                     # rest of the race.
                     typed_word_without_mistakes = 0 
                     text_color = '\033[31m' # Sets the verse's text to red to 
                     # designate that an error is present.
-                    if (character != character_backspace) & (character != word_backspace): 
+                    if ((character != character_backspace) & 
+                        (character != word_backspace)): 
                         # Backspaces won't be counted as part of the 
                         # incorrect character tally so that
                         # players won't be double-penalized for mistyping
@@ -803,13 +892,16 @@ within the Bible .csv file).\n")
                 
                 # Printing the player's response so far: 
                 
-                # This process will involve printing the entirety of verse_response
+                # This process will involve printing the entirety of 
+                # verse_response
                 # after each character is pressed rather than 
                 # just the most recent character. 
-                # This code is more complex than a regular print statement, but it has
+                # This code is more complex than a regular print statement, 
+                # but it has
                 # several advantages:
                 # 1. It allows the player to quickly determine when a typo has 
-                # occurred (as the text will show up in red rather than in green).
+                # occurred (as the text will show up in red rather than 
+                # in green).
                 # 2. It supports the use of backspace to correct responses on 
                 # previous lines. (I wasn't able to navigate to a previous line 
                 # using backspace when printing single characters at a time.)
@@ -817,15 +909,15 @@ within the Bible .csv file).\n")
                 # recent character. If the latest typed line takes up the entire
                 # width of the console, the cursor will appear on the left of 
                 # the following line.
-                # The development of this code involved a decent amount of trial and 
-                # error, but I'll try to explain the function of each line in order to
-                # make the final result more intuitive.
-
+                # The development of this code involved a decent amount of 
+                # trial and error. I've added in documentation in hopes
+                # of making it more intuitive. 
 
                 line_count = ((len(verse_response)) // terminal_width)
-                # Calculates the number of full lines that the player's
-                # output takes up. This information will help the code adjust
-                # its output when the player reaches the end of the terminal.
+                # Uses floor division to calculate the number of full lines 
+                # that the player's output takes up. This information will help 
+                # the code adjust its output when the player reaches the end 
+                # of the terminal.
 
                 clear_text_to_right_command = '\033[0K' # This ANSI escape code
                 # code clears out all text
@@ -841,47 +933,48 @@ within the Bible .csv file).\n")
                 # will help ensure that the text on the lower line
                 # gets cleared out.
 
-                # In order to make the cursor appear on a new line when the player
-                # has reached the end of a line, a space will get added to the verse
-                # after it is printed (see below for more details). To compensate for 
-                # this space, the ANSI escape code '\033[D' will usually get printed;
-                # this code will then move the cursor one column back. However, 
-                # if the verse is one column away from the end of the line, this
-                # step won't be necessary, so an empty string can get passed
-                # to left_cursor_shift instead.
+                # In order to make the cursor appear on a new line when the 
+                # player has reached the end of a line, a space will get added 
+                # to the verse after it is printed (see below for more details). 
+                # To compensate for this space, the ANSI escape code '\033[D' 
+                # will usually get printed, thus moving the cursor one column 
+                # back. However, if the verse is one column away from the end 
+                # of the line, this step won't be necessary, so an empty string 
+                # can get passed to left_cursor_shift instead.
                 if terminal_width - (len(verse_response) % terminal_width) == 1:
                     left_cursor_shift = ''
                 else:
                     left_cursor_shift = '\033[D'
 
-                # In order to get verses of different lengths to print correctly,
-                # it's helpful to begin each print statement from the same position.
-                # This can be accomplished by generating an ANSI escape code that
-                # moves the cursor to the same place whenever the print process
-                # begins.
-                # (Note: an earlier version of this code used an alternate solution
-                # that involved shifting the print statement up or down depending
-                # on the number of lines being printed. This solution was more
-                # complex and less intuitive than the cursor reposition option,
-                # so I replaced that code with this setup. The earlier
-                # solution *does* do a much better job of handling situations in which 
-                # the response takes up the entire terminal; however, in that scenario,
-                # the player wouldn't be able to see the original verse anyway, making
-                # the game unplayable, so it's OK that the current code wouldn't
-                # function well in that case.)
+                # In order to get verses of different lengths to print 
+                # correctly, it's helpful to begin each print statement 
+                # from the same position. This can be accomplished by 
+                # generating an ANSI escape code that moves the cursor to the 
+                # same place whenever the print process begins.
+                # (Note: an earlier version of this code used an alternate 
+                # solution that involved shifting the print statement up or down 
+                # depending on the number of lines being printed. This solution 
+                # was more complex and less intuitive than the cursor 
+                # reposition option, so I replaced that code with this setup. 
+                # The earlier solution *does* do a much better job of handling 
+                # situations in which the response takes up the entire terminal; 
+                # however, in that scenario, the player wouldn't be able to see 
+                # the original verse anyway, making the game unplayable, so it's 
+                # OK that the current code doesn't function well in that case.)
                     
-                # The cursor reposition command makes use of the cursor_y_pos and
-                # cursor_x_pos values retrieved earlier via term.get_location().
-                # (I found that that function took around .1 to .15 seconds to run,
-                # so calling it after each character would slow the program down
-                # noticeably. Therefore, it's best to call it just once before
-                # the start of the typing test.)
+                # The cursor reposition command makes use of the cursor_y_pos 
+                # and cursor_x_pos values retrieved earlier via 
+                # term.get_location().
+                # (I found that that function took around .1 to .15 seconds 
+                # to run, so calling it after each character would slow the 
+                # program down noticeably. Therefore, it's best to call it 
+                # just once before the start of the typing test.)
 
-                # The pre-existing cursor_y_pos value works great for most cases;
-                # however, printing issues would result if the player's text
-                # would extend past the final line of the terminal. Therefore, 
-                # the following if statement was added in to check for and
-                # address this condition.    
+                # In most cases, the pre-existing cursor_y_pos value 
+                # reflects an ideal cursor height; however, printing issues
+                # will result if the player's text extends past the final line 
+                # of the terminal. Therefore, the following if statement 
+                # was added in to check for and address this condition.    
                     
                 if (cursor_y_pos + (line_count)) > terminal_height: # If this
                     # returns True, the text response will extend past the final
@@ -894,17 +987,19 @@ within the Bible .csv file).\n")
                     # I initially thought -= 1 would work, since we're only
                     # printing one newline above, but for some reason the
                     # original text went up 2 lines. (Perhaps the terminal added
-                    # in another line to account for our going past the final line.)
+                    # in another line to account for our going past 
+                    # the final line.)
                     # Thus, I changed the subtraction amount from
                     # from 1 to 2. (Trial and error was definitely one of
                     # the tools I used in writing this code!)
 
                     # Note that, now that cursor_y_pos has been reduced by 2, 
-                    # this if statement won't return true until we add 
+                    # this if statement won't return True until we add 
                     # two more lines to our response.
 
-                    # print('\a', end = '') # Prints an alert, which is useful for 
-                    # debugging (since printing text could affect the output).
+                    # print('\a', end = '') # Prints an alert, which is 
+                    # useful for debugging (since printing text would affect 
+                    # the output).
                     # See https://stackoverflow.com/a/6537650/13097194
 
                 # We're now ready to create our cursor reposition command,
@@ -912,52 +1007,62 @@ within the Bible .csv file).\n")
                 cursor_reposition_command = f'\033[{cursor_y_pos};{cursor_x_pos}H'
                 # Based on https://github.com/tartley/colorama
 
+                # A print statement will now be called to display the latest 
+                # version of verse_response on the screen. It will do so using 
+                # the following steps:
+                # (Note: Many of the items to be printed are ANSI escape codes 
+                # rather than text.)
 
-                # A print statement will now be called to display the latest version
-                # of verse_response on the screen. It will do so using the following steps:
-                # (Note: Many of these items are ANSI escape codes rather than
-                # text.)
-
-                # 1. clear_text_to_left_command gets printed so that text on a lower
-                # line will get removed if the player returns to a previous line via
-                # Backspace or Ctrl + Backspace.
+                # 1. clear_text_to_left_command gets printed so that 
+                # text on a lower line will get removed if the player returns 
+                # to a previous line via Backspace or Ctrl + Backspace.
                 
                 # 2. cursor_reposition_command moves the cursor to an ideal
                 # starting point for writing the text. (See notes above
                 # for more details.)
                 
-                # 3. text_color gets printed; this will make the verse red if a mistake
-                # is present and green otherwise.
+                # 3. text_color gets printed; this will make the verse red if 
+                # a mistake is present and green otherwise.
 
-                # 4. The verse itself gets printed, followed by a space (in order
-                # to make a new line appear if the player has reached the end of the line). Note that no other spaces are present within the print statement.
+                # 4. The verse itself gets printed, followed by a space 
+                # (in order to make a new line appear if the player has reached 
+                # the end of the line). Note that no other spaces are present 
+                # within the print statement.
 
-                # 5. In order to compensate for this space, left_cursor_shift is called,
-                # which usually moves the cursor back one column. (See above for more
-                # details.)
+                # 5. In order to compensate for this space, left_cursor_shift 
+                # is added, which usually moves the cursor back one column. 
+                # (See above for more details.)
 
                 # 6. clear_text_to_right_command is printed so that text removed
                 # via Backspace or Ctrl + Backspace will no longer appear.
 
-                # This print statement sets end to '' so that the cursor will not move to a new line after the string is printed. In addition, flush is set 
-                # to True so that the player's response will appear immediately. 
+                # This print statement sets end to '' so that the cursor will 
+                # not move to a new line after the string is printed. 
+                # In addition, flush is set  to True so that the player's 
+                # response will appear immediately. 
                     
                 print(f"{clear_text_to_left_command}{cursor_reposition_command}\
 {text_color}{verse_response} {left_cursor_shift}{clear_text_to_right_command}", 
                 end = '', flush = True)
                 
-                if verse_response == verse: # Note that, unlike with version
-                    # v1, the player does not need to hit 'Enter' in order
-                    # to end the typing test after writing a completed
-                    # verse. This should speed up his/her WPM as a result.
+                # Version V2 of the typing test will now check to see
+                # whether the player finished typing the test correctly; 
+                # if he/she has, the test will end automatically. This setup
+                # allows for a more accurate (and faster) WPM to be calculated 
+                # relative to a manual option for ending the test.
+
+                if verse_response == verse: # The player has typed the test
+                    # correctly.
                     typing_end_time = time.perf_counter_ns()
                     typing_time = (
                         typing_end_time - typing_start_time) / 1000000000
-                    # Dividing by 1 billion to convert typing_time from nanoseconds
-                    # to seconds
-                    print('\nSuccess!') # The cursor
-                    # needs to be moved past the lines already printed
-                    # so that 'Success' won't overwrite any of the words.
+                    # Since perf_counter_ns() measures time at the nanosecond 
+                    # level, the output of (typing_end_time - typing_start_time) 
+                    # must be divided by one billion in order to determine the 
+                    # number of seconds used to type the verse.
+                    print('\nSuccess!') # '\n' was added before 'Success!'
+                    # so that the cursor will be moved past the lines already
+                    # printed, thus preventing words from getting overwritten.
                     print('\033[0m') # Resetting the text's color once again
 
                     # Accuracy calculations:
@@ -974,7 +1079,9 @@ within the Bible .csv file).\n")
                     # print("Backspace count and incorrect character count:",
                     # backspace_count, incorrect_character_count)
                 
-                    # Calculating timing statistics at the word level:
+                    # converting word_stats_list into a DataFrame
+                    # so that it can be added to a pre-existing
+                    # word stats table:
                     word_stats_for_latest_test = pd.DataFrame(word_stats_list)
                     # print(word_stats_for_latest_test)
                     # print(f"Code execution stats: Median: {np.median(
@@ -985,17 +1092,54 @@ within the Bible .csv file).\n")
                     # code_execution_time_list}")
                     break
 
-        if verse_response == verse:
+        elif test_type == 'v1': 
+            # This is a simple typing test setup that receives input from
+            # the user when 'Enter' is pressed, then checks that input
+            # against the verse. Because it doesn't check the response
+            # for accuracy as the player types, the player might not realize
+            # a character was mistyped until the very end, which can get
+            # frustrating. Version V2 of the test addresses this issue.
+            
+            # The following three variables can't be calculated using v1
+            # of the test (since the player's response is only evaluated
+            # after all words have been submitted), so they will instead
+            # be initialized as NaN values.
+            no_mistakes = np.NaN
+            backspaces_as_pct_of_length = np.NaN
+            incorrect_characters_as_pct_of_length = np.NaN
+            
+            # Storing various start time values:
+            unix_start_time = time.time()
+            local_start_time = pd.Timestamp.now()
+            utc_start_time = pd.Timestamp.now(timezone.utc)
+
+            typing_start_time = time.perf_counter_ns() 
+
+            verse_response = input()
+            # The following code will execute once the player finishes typing 
+            # and hits Enter. (Having the program evaluate the player's entry 
+            # only after 'Enter' is pressed isn't the best option, as the time 
+            # required to hit Enter will reduce the player's reported WPM. 
+            # Version V2 stops the test right when the final correct
+            # character is typed, which will make the final WPM slightly faster.
+            typing_end_time = time.perf_counter_ns()
+            typing_time = (typing_end_time - typing_start_time) / 1000000000
+
+        if verse_response == verse: 
             print(f"Well done! You typed the verse correctly.")
             complete_flag = 1 # Setting this flag to 1 allows the player to exit
             # out of the while statement.
         elif (verse_response.lower() == 'exit') or ('`' in verse_response):
             print("Exiting typing test.")
-            return results_table, word_stats_table # Exits the function without saving the 
+            autostart = False # Entering this character will also
+            # cancel autostart, thus allowing the player to resume
+            # starting tests manually (or exit the game).
+            return results_table, word_stats_table, autostart 
+            # Exits the function without saving the 
             # current test to results_table or df_Bible. This function has
             # been updated to work with both versions of the typing
             # test.
-        else:
+        else: # This will only return True within V1.
             print("Sorry, that wasn't the correct input.")   
             # Identifying incorrectly typed words:
             verse_words = verse.split(' ')
@@ -1025,14 +1169,13 @@ was typed '{verse_response_words[i]}'.")
             word_stats_table = pd.concat(
         [word_stats_table, word_stats_for_latest_test]).reset_index(
         drop = True)
-
-
+            
     # Calculating typing statistics:
 
     cps = len(verse) / typing_time # Calculating characters per second
-    wpm = cps * 12 # Multiplying by 60 to convert from characters to minutes, 
-    # then dividing by 5 to convert from characters to words.
-    wpm
+    wpm = cps * 12 # Multiplying by 60 to convert from seconds to minutes, 
+    # then dividing by 5 to convert from characters to words (a standard 
+    # conversion practice).
 
     # Creating a single-row DataFrame that stores the player's results:
     # +1 is added to the length of the results table in order to begin
@@ -1074,7 +1217,6 @@ incorrect_characters_as_pct_of_length,
     # to df_latest_result, but I chose a pd.concat() setup in order to ensure
     # that the latest result would never overwrite an earlier result.
     
-
     # Rank and percentile data need to be recalculated after each test,
     # as later results can affect the rank and percentile of earlier results.
     # I could compute these statistics later, but calculating them here
@@ -1121,8 +1263,8 @@ respectively. Your WPM percentile was {latest_percentile} \
         # In these cases, we should replace the pre-existing Fastest_WPM value
         # with the WPM the player just achieved.
         # I found that 5 > np.NaN returned False, so if I only checked for
-        # wpm > fastest_wpm, blank fastest_wpm values would never get overwritten.
-        # Therefore, I chose to also check for NaN values 
+        # wpm > fastest_wpm, blank fastest_wpm values would never get 
+        # overwritten. Therefore, I chose to also check for NaN values 
         # in the above if statement.
         df_Bible.at[verse_order, 'Fastest_WPM'] = wpm
 
@@ -1130,37 +1272,49 @@ respectively. Your WPM percentile was {latest_percentile} \
     # the player won't lose all of his/her progress.)
     if verse_order % 10 == 0: # The autosave will only take place for ~10%
         # of the user's verses, thus saving processing time (and wear
-        # on solid state hard drives, though I'm not sure how much of a difference
-        # this would make for the SSD's longevity).
+        # on solid state hard drives, though I'm not sure how much of 
+        # a difference this would make for the SSD's longevity).
         try:
             results_table.to_csv('df_results_autosave.csv', index = True)
-            df_Bible.to_csv('WEB_Catholic_Version_for_game_updated_autosave.csv',
-            index = True)
+            df_Bible.to_csv(
+            'WEB_Catholic_Version_for_game_updated_autosave.csv', index = True)
             word_stats_table.to_csv('word_stats_autosave.csv', 
             index = False)
             print("Autosave complete.")
-        except:
+        except: # If one of these files is open, the autosave might not have
+            # worked correctly.
             print("At least one of the autosave files could not be saved. Close \
-    out of any open autosave files before starting the next test \
-    so that they can be updated.")
-    return (results_table, word_stats_table)
+    out of any open autosave files so that they can be updated later on.")
+    return (results_table, word_stats_table, autostart)
 
 
 # %%
 def select_subsequent_verse(previous_verse_order):
     '''This function allows the player to specify which verse to
-    type next, or, alternatively, to exit the game.'''
+    type next, or, alternatively, to exit the game.
+    This function will either return a positive number (representing a verse)
+    or a negative number (representing another command). Command codes
+    were made negative so that they wouldn't be mistaken for verse numbers.
+    
+    This function is quite similar to select_verse, but also incorporates
+    but makes use of the verse_order value for the most recent verse
+    typed (previous_verse_order).
+    '''
+
     print("Press 0 to retry the verse you just typed; \
 1 to type the next verse; 2 to type the next verse that hasn't yet been typed; \
 -3 to select the first verse that hasn't been typed; \
 3 to select a different verse; \
 -1 to save your results and exit; \
-and -2 to save your results without running the analysis \
-portion of the script.") # The analysis portion can take a decent amount of
+-2 to save your results without running the analysis \
+portion of the script; and -4 to enable autostart.") 
+# The analysis portion can take a decent amount of
 # time to run, which is why an option to save without running these analyses
 # was added in. These analyses can then get updated during a later session.
+    
     verses_not_yet_typed = df_Bible.query(
-    "Typed == 0").copy().index.to_list()
+    "Typed == 0").copy().index.to_list() # verses_not_yet_typed stores
+    # verse_order values.
     while True: 
             try:
                 response = int(input())
@@ -1170,8 +1324,7 @@ portion of the script.") # The analysis portion can take a decent amount of
             if response == 0:
                 return previous_verse_order
             elif response == 1:
-                if previous_verse_order == 35379: # The verse order value
-                    # corresponding to the final verse of Revelation
+                if previous_verse_order == len(df_Bible):
                     print("You just typed the last verse in the Bible, so \
 there's no next verse to type! Please enter an option other than 1.\n")
                     continue
@@ -1191,6 +1344,9 @@ instead.")
                 print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
                 verses_not_yet_typed.sort() 
+                # Filtering verses_not_yet_typed to include only verses
+                # whose verse_order values are greater than 
+                # previous_verse_order:
                 next_untyped_verses = [verse for verse in verses_not_yet_typed 
                 if verse > previous_verse_order]
                 return next_untyped_verses[0]
@@ -1208,7 +1364,7 @@ been typed.")
 
             elif response == 3:
                 return select_verse()
-            elif response in [-1, -2]:
+            elif response in [-1, -2, -4]:
                 return response
             else: # A number other than one of the above options was passed.
                 print("Please enter a whole number from -3 to 3 (inclusive).\n")  
@@ -1254,6 +1410,9 @@ def calculate_current_day_results(df):
 {average_wpm_today} and {median_wpm_today}, respectively."
     return result_string
 
+# %% [markdown]
+# ## Here with editing (update the documentation below)
+
 # %%
 def run_game(results_table, word_stats_table):
     '''This function runs Type Through the Bible by 
@@ -1292,34 +1451,57 @@ progress by typing 'exit' and then hitting Enter.")
         print("Version 2 selected. Note that you can exit a test in progress \
 by hitting the ` (backtick) key.")
               
-              
-
-    verse_order = select_verse()
+    verse_order, autostart = select_verse()
     
-
-    while True: # Allows the game to continue until the user exits
-        results_table, word_stats_table = run_typing_test(
+    while True: # Allows the game to continue until the user decides to exit.
+        # The output of a given typing test will serve as the input for
+        # the next typing test; this approach allows the player's results
+        # to get updated over time.
+        results_table, word_stats_table, autostart = run_typing_test(
             verse_order=verse_order, 
         results_table=results_table, 
         word_stats_table=word_stats_table,
-        test_type = typing_test_version)
+        test_type = typing_test_version,
+        autostart=autostart)
         # The game will next share an updated progress report:
         print(calculate_current_day_results(results_table))
         
-        # The player will now be prompted to select a new verse order 
-        # (or to save and quit).
-        verse_order = select_subsequent_verse(
-            previous_verse_order=verse_order)
-        if verse_order == -1: # In this case, the game will quit and the 
-            # user's new test results will be saved to results_table.
-            run_analyses = 1
-            return (results_table, word_stats_table, run_analyses)
-        if verse_order == -2: # In this case, the game will quit and the 
-            # user's new test results will be saved to results_table.
-            # However, the analysis portion of the script will be skipped 
-            # in order to save time.
-            run_analyses = 0
-            return (results_table, word_stats_table, run_analyses)
+        if autostart == True:
+            if verse_order == len(df_Bible): # In this case, the final verse
+                # of the Bible was just typed, so the player will be given
+                # the first verse of the Bible to type instead.
+                verse_order = 1
+            else:
+                verse_order += 1 # The next verse in the Bible will
+                # automatically be selected.
+        if autostart == False: # The player will now be prompted 
+            # to select a new verse (or to save and quit).
+            previous_verse_order = verse_order # Saving verse_order here 
+            # allows it to get retrieved for use in the autostart mode.
+            verse_order = select_subsequent_verse(
+                previous_verse_order=previous_verse_order)
+            if verse_order == -1: # In this case, the game will quit and the 
+                # user's new test results will be saved to results_table.
+                run_analyses = 1
+                return (results_table, word_stats_table, run_analyses)
+            if verse_order == -2: # In this case, the game will quit and the 
+                # user's new test results will be saved to results_table.
+                # However, the analysis portion of the script will be skipped 
+                # in order to save time.
+                run_analyses = 0
+                return (results_table, word_stats_table, run_analyses)
+            if verse_order == -4: # Autostart has been turned on
+                autostart = True
+                if previous_verse_order == len(df_Bible): 
+                # In this case, the final verse
+                # of the Bible was just typed, so the player will be given
+                # the first verse of the Bible to type instead.
+                    verse_order = 1
+                else:
+                    verse_order = previous_verse_order + 1 
+                    # The next verse in the Bible will
+                    # automatically be selected.
+
 
 
 # %%
@@ -1547,17 +1729,29 @@ print("Creating tree map(s).")
 # just one line of code. Thanks Plotly!
 fig_tree_map_books_chapters_verses = px.treemap(
     df_Bible, path = ['Book_Name', 'Chapter_Name', 'Verse_#'], 
-    values = 'Characters', color = 'Typed')
+    values = 'Characters', color = 'Typed',
+    title='Proportions of Bible Books and Chapters That Have Been Typed')
 # fig_verses_typed
+
+fig_tree_map_books_chapters_verses
 
 # %%
 fig_tree_map_books_chapters_verses.write_html(
     'Analyses/tree_map_books_chapters_verses.html')
 
 # %%
+# Generating a .png version of this figure takes much longer than does 
+# generating an .html version, so a .png copy will only be created
+# if extra_analyses is set to True.
+if (run_on_notebook == True) & (extra_analyses == True):
+    fig_tree_map_books_chapters_verses.write_image(
+    'Analyses/tree_map_chapters_verses.png', width = 1920, height = 1080, 
+    engine = 'kaleido', scale = 2)
+
+# %%
 # # A similar chart that doesn't use the Typed column for color coding:
-# (This chart, unlike fig_verses_typed above, won't change unless edits are 
-# made to the code itself, so it can be 
+# (This chart, unlike fig_tree_map_books_chapters_verses_typed above, 
+# won't change unless edits are made to the code itself, so it can be 
 # commented out after being run once.)
 # fig_Bible_verses.write_html('Bible_tree_map.html')
 # fig_Bible_verses = px.treemap(df_Bible, path = ['Book_Name', 
@@ -1568,32 +1762,36 @@ fig_tree_map_books_chapters_verses.write_html(
 df_Bible
 
 # %%
-# This variant of the treemap shows chapters and verses rather than books,
+# This variant of the tree map shows chapters and verses rather than books,
 # chapters, and verses.
 if (run_on_notebook == True) & (extra_analyses == True):
     fig_tree_map_chapters_verses = px.treemap(df_Bible, path = [
-        'Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed')
+        'Book_and_Chapter', 'Verse_#'], values = 'Characters', color = 'Typed',
+        title = 'Proportions of Bible Chapters and Verses That Have Been Typed')
     fig_tree_map_chapters_verses.write_html(
         'Analyses/tree_map_chapters_verses.html')
     fig_tree_map_chapters_verses.write_image(
         'Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
 
 # %%
-# This variant of the treemap shows each verse as its own box, which results in 
+# This variant of the tree map shows each verse as its own box, which results in 
 # a very busy graph that takes a while to load within a web browser
 # (if it even loads at all).
 
 if (run_on_notebook == True) & (extra_analyses == True):
     fig_tree_map_verses = px.treemap(df_Bible, path = [df_Bible.index], 
-                                     values = 'Characters', color = 'Typed')
+    values = 'Characters', color = 'Typed',
+    title = 'Proportions of Bible Verses That Have Been Typed')
     fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
-    fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', 
-                                    width = 7680, height = 4320) 
+    # fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', 
+    #                                 width = 7680, height = 4320) # 8K 
+    # resolution isn't sufficient to display the numbers of verses with
+    # relatively low character counts.
     fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', 
                                     width = 15360, height = 8640) 
 # fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, 
 # height = 17280) # Didn't end up rendering successfully, probably 
-# because the dimensions were absurdly large!
+# because the dimensions were extremely large!
 
 # %% [markdown]
 # ### Creating a bar chart that shows the proportion of each book that has been typed so far:
@@ -1605,35 +1803,44 @@ print("Creating progress analyses.")
 df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 
 'Book_Name'], values = ['Characters', 'Characters_Typed'], 
 aggfunc = 'sum').reset_index()
+df_characters_typed_by_book.rename(columns={'Characters_Typed':'Characters Typed'}, 
+inplace = True)
 # Adding 'Book_Order' as the first index value allows for the pivot tables
 # and bars to be ordered by that value.
-df_characters_typed_by_book['proportion_typed'] = df_characters_typed_by_book[
-    'Characters_Typed'] / df_characters_typed_by_book['Characters']
+df_characters_typed_by_book['Proportion Typed'] = df_characters_typed_by_book[
+    'Characters Typed'] / df_characters_typed_by_book['Characters']
 df_characters_typed_by_book.to_csv(
     'Analyses/characters_typed_by_book.csv')
 df_characters_typed_by_book
 
 # %%
-fig_proportion_of_each_book_typed = px.bar(df_characters_typed_by_book, 
-x = 'Book_Name', y = 'proportion_typed')
-fig_proportion_of_each_book_typed.update_yaxes(range = [0, 1]) # Setting
+fig_percentage_of_each_book_typed = px.bar(df_characters_typed_by_book, 
+x = 'Book_Name', y = 'Proportion Typed', title = 'Books by Percentage Typed')
+fig_percentage_of_each_book_typed.update_yaxes(range = [0, 1]) # Setting
 # the maximum y value as 1 better demonstrates how much of the Bible
 # has been typed so far
-fig_proportion_of_each_book_typed.write_html(
-    'Analyses/proportion_of_each_book_typed.html')
-fig_proportion_of_each_book_typed.write_image(
-    'Analyses/proportion_of_each_book_typed.png', 
+fig_percentage_of_each_book_typed.update_layout(xaxis_title = 'Book', 
+yaxis_title = '% Typed', yaxis_tickformat = ',.2%')
+
+fig_percentage_of_each_book_typed.write_html(
+    'Analyses/percentage_of_each_book_typed.html')
+fig_percentage_of_each_book_typed.write_image(
+    'Analyses/percentage_of_each_book_typed.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_proportion_of_each_book_typed
+fig_percentage_of_each_book_typed
 
 # %% [markdown]
 # ### Creating a chart that compares the number of characters in each book with the number that have been typed:
 # 
-# This provides a clearer view of the player's progress in typing the Bible, as each bar's height is based on the number of characters. (In contrast, bars for fully typed small books will be just as high in fig_proportion_of_each_book_typed as those for fully typed large books.)
+# This provides a clearer view of the player's progress in typing the Bible, as each bar's height is based on the number of characters. (In contrast, bars for fully typed small books will be just as high in fig_percentage_of_each_book_typed as those for fully typed large books.)
 
 # %%
 fig_characters_typed_in_each_book = px.bar(df_characters_typed_by_book, 
-x = 'Book_Name', y = ['Characters', 'Characters_Typed'], barmode = 'overlay')
+x = 'Book_Name', y = ['Characters', 'Characters Typed'], barmode = 'overlay',
+title = 'Books by Characters Typed')
+fig_characters_typed_in_each_book.update_layout(xaxis_title='Book',
+yaxis_title = 'Characters', legend_title = 'Variable')
+
 fig_characters_typed_in_each_book.write_html(
     'Analyses/characters_typed_by_book.html')
 fig_characters_typed_in_each_book.write_image(
@@ -1646,10 +1853,10 @@ fig_characters_typed_in_each_book
 
 # %%
 df_characters_typed_by_book_and_chapter = df_Bible.pivot_table(index = [
-'Book_Order', 'Book_Name', 'Book_and_Chapter'], values = [
+'Book_Order', 'Book_Name',  'Chapter_Name', 'Book_and_Chapter'], values = [
     'Characters', 'Characters_Typed'], aggfunc = 'sum').reset_index()
 df_characters_typed_by_book_and_chapter[
-'proportion_typed'] = df_characters_typed_by_book_and_chapter[
+'Proportion Typed'] = df_characters_typed_by_book_and_chapter[
 'Characters_Typed'] / df_characters_typed_by_book_and_chapter['Characters']
 df_characters_typed_by_book_and_chapter.to_csv(
     'Analyses/characters_typed_by_book_and_chapter.csv')
@@ -1661,7 +1868,12 @@ df_characters_typed_by_book_and_chapter
 # %%
 fig_characters_typed_in_each_book_and_chapter = px.bar(
 df_characters_typed_by_book_and_chapter, x = 'Book_Name', y = [
-    'Characters'], color = 'proportion_typed')
+    'Characters'], color = 'Proportion Typed', 
+hover_data = ['Book_Name', 'Chapter_Name'],
+title = 'Books and Chapters by Characters Typed')
+fig_characters_typed_in_each_book_and_chapter.update_layout(
+xaxis_title = 'Book', yaxis_title = 'Characters')
+
 fig_characters_typed_in_each_book_and_chapter.write_html(
     'Analyses/characters_typed_by_book_and_chapter.html')
 fig_characters_typed_in_each_book_and_chapter.write_image(
@@ -1728,8 +1940,10 @@ df_top_dates_by_characters
 
 # %%
 fig_top_dates_by_characters = px.bar(df_top_dates_by_characters, 
-x = 'Rank and Date', y = 'Characters', text = 'Characters')
+x = 'Rank and Date', y = 'Characters', text = 'Characters', title = 
+'Highest Daily Character Counts')
 fig_top_dates_by_characters.update_xaxes(tickangle = 90)
+
 fig_top_dates_by_characters.write_html('Analyses/top_dates_by_characters.html')
 fig_top_dates_by_characters.write_image(
     'Analyses/top_dates_by_characters.png', 
@@ -1755,8 +1969,10 @@ df_top_dates_by_verses
 
 # %%
 fig_top_dates_by_verses = px.bar(df_top_dates_by_verses, 
-x = 'Rank and Date', y = 'Verses', text = 'Verses')
+x = 'Rank and Date', y = 'Verses', text = 'Verses',
+title = 'Highest Daily Verse Counts')
 fig_top_dates_by_verses.update_xaxes(tickangle = 90)
+
 fig_top_dates_by_verses.write_html('Analyses/top_dates_by_verses.html')
 fig_top_dates_by_verses.write_image(
     'Analyses/top_dates_by_verses.png', 
@@ -1788,8 +2004,10 @@ df_top_months_by_characters
 
 # %%
 fig_top_months_by_characters = px.bar(df_top_months_by_characters, 
-x = 'Rank and Month', y = 'Characters', text = 'Characters')
+x = 'Rank and Month', y = 'Characters', text = 'Characters',
+title = 'Highest Monthly Character Counts')
 fig_top_months_by_characters.update_xaxes(tickangle = 90)
+
 fig_top_months_by_characters.write_html(
     'Analyses/top_months_by_characters.html')
 fig_top_months_by_characters.write_image(
@@ -1823,8 +2041,10 @@ df_top_months_by_verses
 
 # %%
 fig_top_months_by_verses = px.bar(df_top_months_by_verses, 
-x = 'Rank and Month', y = 'Verses', text = 'Verses')
+x = 'Rank and Month', y = 'Verses', text = 'Verses',
+title = 'Highest Monthly Verse Counts')
 fig_top_months_by_verses.update_xaxes(tickangle = 90)
+
 fig_top_months_by_verses.write_html('Analyses/top_months_by_verses.html')
 fig_top_months_by_verses.write_image(
     'Analyses/top_months_by_verses.png', 
@@ -1849,8 +2069,10 @@ df_top_hours_by_characters
 
 # %%
 fig_top_hours_by_characters = px.bar(df_top_hours_by_characters, 
-x = 'Hour', y = 'Characters', text = 'Characters')
+x = 'Hour', y = 'Characters', text = 'Characters',
+title = 'Highest Hourly Character Counts')
 fig_top_hours_by_characters.update_xaxes(type = 'category')
+
 fig_top_hours_by_characters.write_html('Analyses/top_hours_by_characters.html')
 fig_top_hours_by_characters.write_image(
     'Analyses/top_hours_by_characters.png', 
@@ -1875,8 +2097,10 @@ df_top_30m_by_characters
 
 # %%
 fig_top_30m_by_characters = px.bar(df_top_30m_by_characters, 
-x = '30-Minute Block', y = 'Characters', text = 'Characters')
+x = '30-Minute Block', y = 'Characters', text = 'Characters', 
+title = 'Highest 30-Minute Character Counts')
 fig_top_30m_by_characters.update_xaxes(type = 'category')
+
 fig_top_30m_by_characters.write_html(
 'Analyses/top_30m_blocks_by_characters.html')
 fig_top_30m_by_characters.write_image(
@@ -1904,8 +2128,10 @@ df_top_15m_by_characters
 
 # %%
 fig_top_15m_by_characters = px.bar(df_top_15m_by_characters, 
-x = '15-Minute Block', y = 'Characters', text = 'Characters')
+x = '15-Minute Block', y = 'Characters', text = 'Characters',
+title = 'Highest 15-Minute Character Counts')
 fig_top_15m_by_characters.update_xaxes(type = 'category')
+
 fig_top_15m_by_characters.write_html(
 'Analyses/top_15m_blocks_by_characters.html')
 fig_top_15m_by_characters.write_image(
@@ -1933,8 +2159,10 @@ df_top_10m_by_characters
 
 # %%
 fig_top_10m_by_characters = px.bar(df_top_10m_by_characters, 
-x = '10-Minute Block', y = 'Characters', text = 'Characters')
+x = '10-Minute Block', y = 'Characters', text = 'Characters',
+title = 'Highest 10-Minute Character Counts')
 fig_top_10m_by_characters.update_xaxes(type = 'category')
+
 fig_top_10m_by_characters.write_html(
 'Analyses/top_10m_blocks_by_characters.html')
 fig_top_10m_by_characters.write_image(
@@ -1952,11 +2180,15 @@ fig_top_10m_by_characters
 print("Creating WPM and accuracy analyses.")
 
 # %% [markdown]
-# Verses with the highest WPMs:
+# Highest WPM results:
 
 # %%
 df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(
     100).copy()
+df_top_100_wpm['Test #'] = df_top_100_wpm.index # Creating a column that stores
+# index data will make it easier to add that data into chart tooltips. (There
+# may be a more elegant way to add index data into tooltips.)
+# of charts
 df_top_100_wpm.insert(0, 'Rank', df_top_100_wpm['WPM'].rank(
     ascending = False, method = 'min').astype('int'))
 # method = 'min' assigns the lowest rank to any rows that happen to have
@@ -1967,7 +2199,9 @@ df_top_100_wpm
 
 # %%
 fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM', 
-text_auto = '.6s')
+text_auto = '.6s', hover_data = ['Test #', 'Local_Start_Time'],
+title = 'Highest WPM Results for Individual Tests')
+
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
 fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -1985,13 +2219,17 @@ if len(df_results) >= 10: # If fewer than 10 tests are present in df_results,
     df_top_last_10_avg_results.insert(0, 'Rank', 
     df_top_last_10_avg_results['Last 10 Avg'].rank(ascending = False, 
     method = 'min').astype('int'))
+    df_top_last_10_avg_results['Test #'] = df_top_last_10_avg_results.index
     df_top_last_10_avg_results.to_csv('Analyses/top_last_10_avg_results.csv', index = False)
     df_top_last_10_avg_results
 
 # %%
 if len(df_results) >= 10:
     fig_top_last_10_average_wpm = px.bar(df_top_last_10_avg_results, x = 'Rank', 
-    y = 'Last 10 Avg', text_auto = '.6s')
+    y = 'Last 10 Avg', text_auto = '.6s', hover_data=['Test #', 'Local_Start_Time'],
+    title = 'Highest 10-Test WPM Averages')
+    fig_top_last_10_average_wpm.update_layout(yaxis_title = 'Average WPM over Last 10 Tests')
+
     fig_top_last_10_average_wpm.write_html('Analyses/top_last_10_average_wpm.html')
     fig_top_last_10_average_wpm.write_image('Analyses/top_last_10_average_wpm.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2004,8 +2242,11 @@ if len(df_results) >= 10:
 df_results
 
 # %%
-fig_df_results_by_test_number = px.line(df_results, x = df_results.index, 
-y = ['WPM', 'Last 10 Avg', 'Last 100 Avg', 'Last 1000 Avg', 'cumulative_avg'])
+fig_df_results_by_test_number = px.line(df_results.rename(columns = {'cumulative_avg':'Cumulative Avg'}), x = df_results.index, 
+y = ['WPM', 'Last 10 Avg', 'Last 100 Avg', 'Last 1000 Avg', 'Cumulative Avg'],
+title = 'WPM by Test Number')
+fig_df_results_by_test_number.update_layout(yaxis_title = 'WPM')
+
 fig_df_results_by_test_number.write_html('Analyses/results_by_test_number.html')
 fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2018,9 +2259,12 @@ fig_df_results_by_test_number
 
 # %%
 fig_wpm_histogram = px.histogram(x = df_results['WPM'], nbins = 50, 
-text_auto = True)
-fig_wpm_histogram.update_layout(bargroupgap = 0.1) # Adds a bit of space
+text_auto = True, title = 'WPM Histogram')
+fig_wpm_histogram.update_layout(bargroupgap = 0.1, xaxis_title = 'WPM', 
+yaxis_title = 'Number of Tests') 
+# bargroupgap = 0.1 adds a bit of space
 # in between histogram bars. See https://stackoverflow.com/a/62925197/13097194
+
 fig_wpm_histogram.write_html('Analyses/wpm_histogram.html')
 fig_wpm_histogram.write_image('Analyses/wpm_histogram.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2028,14 +2272,14 @@ fig_wpm_histogram
 
 
 # %%
-fig_wpm_histogram = px.histogram(x = df_results.tail(1000)['WPM'], nbins = 50, 
-text_auto = True)
-fig_wpm_histogram.update_layout(bargroupgap = 0.1) # Adds a bit of space
-# in between histogram bars. See https://stackoverflow.com/a/62925197/13097194
-fig_wpm_histogram.write_html('Analyses/wpm_histogram_last_1000.html')
-fig_wpm_histogram.write_image('Analyses/wpm_histogram_last_1000.png', 
+fig_wpm_histogram_last_1000 = px.histogram(x = df_results.tail(1000)['WPM'], nbins = 50, 
+text_auto = True, title = 'WPM Histogram for Last 1000 Tests')
+fig_wpm_histogram_last_1000.update_layout(bargroupgap = 0.1, xaxis_title = 'WPM', 
+yaxis_title = 'Number of Tests') 
+fig_wpm_histogram_last_1000.write_html('Analyses/wpm_histogram_last_1000.html')
+fig_wpm_histogram_last_1000.write_image('Analyses/wpm_histogram_last_1000.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_wpm_histogram
+fig_wpm_histogram_last_1000
 
 
 # %% [markdown]
@@ -2048,17 +2292,20 @@ df_results_by_month = df_results.pivot_table(
 df_results_by_month['Year/Month'] = df_results_by_month[
     'Local_Start_Year'].astype('str') + '-' + df_results_by_month[
     'Local_Start_Month'].astype('str')
+df_results_by_month.rename(columns = {'Count':'Number of Tests'}, inplace = True)
 df_results_by_month.to_csv('Analyses/results_by_month.csv', index = False)
 df_results_by_month
 
 # %%
 fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', 
-y = 'WPM', color = 'Count', text_auto = '.6s')
+y = 'WPM', color = 'Number of Tests', text_auto = '.6s', title = 'Average WPM by Month')
 fig_results_by_month.update_xaxes(type = 'category') # This line, based on
 # Pracheta's response at https://stackoverflow.com/a/64424308/13097194,
 # updates the axes to show the date-month pairs as strings rather than 
 # as Plotly-formatted date values. This will also prevent missing
 # months from appearing in the graph.
+fig_results_by_month.update_layout(legend_title_text = 'Test Count')
+
 fig_results_by_month.write_html('Analyses/results_by_month.html')
 fig_results_by_month.write_image('Analyses/results_by_month.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2071,19 +2318,22 @@ fig_results_by_month
 df_results_by_hour = df_results.pivot_table(index = ['Local_Start_Hour'], 
 values = ['Count', 'WPM'], 
 aggfunc = {'Count':'sum', 'WPM':'mean'}).reset_index()
+df_results_by_hour.rename(columns = {'Count':'Number of Tests'}, inplace = True)
 df_results_by_hour.to_csv('Analyses/results_by_hour.csv')
 df_results_by_hour
 
 # %%
 fig_results_by_hour = px.bar(df_results_by_hour, x = 'Local_Start_Hour', 
-y = 'WPM', color = 'Count', text_auto = '.6s')
+y = 'WPM', color = 'Number of Tests', text_auto = '.6s',
+title = 'Average WPM by Hour')
+fig_results_by_hour.update_layout(xaxis_title = 'Hour')
 fig_results_by_hour.write_html('Analyses/results_by_hour.html')
 fig_results_by_hour.write_image('Analyses/results_by_hour.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_results_by_hour
 
 # %% [markdown]
-# ### Comparing mean WPMs by Bible books:
+# ### Comparing mean WPMs of Bible books:
 
 # %%
 df_wpm_by_book = df_results.pivot_table(index = 'Book', values = 'WPM', 
@@ -2109,9 +2359,9 @@ total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['WPM']
 total_mean_wpm
 
 fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), 
-x = 'Book', y = 'WPM', color = 'Tests', text_auto = '.6s')
+x = 'Book', y = 'WPM', color = 'Tests', text_auto = '.6s', title = 'Average WPM by Book')
 fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, 
-x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm)
+x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm, label = {'textposition':'end','text':f'Average WPM across books: {total_mean_wpm.round(3)}'})
 # See https://plotly.com/python/shapes/ for the add_shape() code.
 # The use of -0.5 and len() - 1.5 is based on gleasocd's answer at 
 # https://stackoverflow.com/a/40408960/13097194 . len(df) - 0.5 would normally
@@ -2132,7 +2382,8 @@ fig_mean_wpm_by_book
 # compare these two outcomes.)
 if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     len(df_results.query("Mistake_Free_Test == 1")) >= 1):
-    df_wpm_by_mistake_free_status = df_results.pivot_table(index = 'Mistake_Free_Test', values = 'WPM', aggfunc = 'mean').reset_index()
+    df_wpm_by_mistake_free_status = df_results.pivot_table(index = 'Mistake_Free_Test', values = ['WPM', 'Count'], aggfunc = {'WPM':'mean', 'Count':'sum'}).reset_index()
+    df_wpm_by_mistake_free_status.rename(columns = {'Count':'Tests'}, inplace = True)
     df_wpm_by_mistake_free_status['Mistake_Free_Test'].replace({0:'No', 1:'Yes'}, inplace = True)
     df_wpm_by_mistake_free_status.to_csv('Analyses/wpm_by_mistake_free_status.csv', index = False)
     df_wpm_by_mistake_free_status
@@ -2143,20 +2394,17 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 # to compare these two outcomes.)
 if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     len(df_results.query("Mistake_Free_Test == 1")) >= 1):
-    fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s')
+    fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s', color = 'Tests', title = 'Average WPM by Mistake-Free Status')
+    fig_wpm_by_mistake_free_status.update_layout(xaxis_title = 'Mistake-Free Test')
     fig_wpm_by_mistake_free_status.write_html('Analyses/mean_wpm_by_mistake_free_status.html')
     fig_wpm_by_mistake_free_status.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
     fig_wpm_by_mistake_free_status
 
-# %%
-df_results.head(3)
-
 # %% [markdown]
-# ### Evaluating the relationship between backspaces as a % of verse length and WPM:
+# ### Evaluating the relationship between incorrect keypresses as a % of verse length and WPM:
 
 # %%
-
 # Note: the following code created a runtime error within the pyinstaller-created
 # .exe version of the program, so I'm excluding the "trendline = 'ols'" 
 # component for now. Hopefully I can find a way to get that code to work
@@ -2166,7 +2414,8 @@ df_results.head(3)
 # # Note that you can hover over the best fit line to see the regression results.
 
 fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
-x = 'Incorrect Characters as % of Verse Length', y = 'WPM')
+x = 'Incorrect Characters as % of Verse Length', y = 'WPM', 
+title = 'Comparison Between Incorrect Character % and WPM')
 
 
 fig_incorrect_characters_wpm_scatter.write_html('Analyses/incorrect_characters_wpm_scatter.html')
@@ -2177,8 +2426,9 @@ fig_incorrect_characters_wpm_scatter
 # %%
 fig_accuracy_wpm_histogram = px.histogram(df_results, 
 x = 'Incorrect Characters as % of Verse Length', y = 'WPM', 
-histfunc = 'avg', nbins = 20, text_auto = '.6s')
-fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1)
+histfunc = 'avg', nbins = 20, text_auto = '.6s',
+title = 'Average WPM for Different Character Percentage Bins')
+fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1, yaxis_title = 'Average WPM')
 fig_accuracy_wpm_histogram.write_html('Analyses/incorrect_characters_wpm_histogram.html')
 fig_accuracy_wpm_histogram.write_image('Analyses/incorrect_characters_wpm_histogram.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2187,8 +2437,9 @@ fig_accuracy_wpm_histogram
 
 # %%
 fig_accuracy_count_histogram = px.histogram(df_results, 
-x = 'Incorrect Characters as % of Verse Length', nbins = 20, text_auto = True)
-fig_accuracy_count_histogram.update_layout(bargroupgap = 0.1)
+x = 'Incorrect Characters as % of Verse Length', nbins = 20, text_auto = True,
+title = 'Incorrect Character Percentage Histogram')
+fig_accuracy_count_histogram.update_layout(bargroupgap = 0.1, yaxis_title = '# of Tests')
 fig_accuracy_count_histogram.write_html('Analyses/incorrect_character_pct_histogram.html')
 fig_accuracy_count_histogram.write_image('Analyses/incorrect_character_pct_histogram.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2202,7 +2453,9 @@ fig_incorrect_characters_by_test_number = px.line(df_results, x = df_results.ind
 y = ['Incorrect Characters as % of Verse Length',
      'Incorrect Character % Last 10 Avg',
      'Incorrect Character % Last 100 Avg',
-     'Incorrect Character % Last 1000 Avg'])
+     'Incorrect Character % Last 1000 Avg'],
+     title = 'Incorrect Characters as % of Verse Length by Test Number')
+fig_incorrect_characters_by_test_number.update_layout(yaxis_title='Percentage')
 fig_incorrect_characters_by_test_number.write_html('Analyses/incorrect_character_pct_over_time.html')
 fig_incorrect_characters_by_test_number.write_image('Analyses/incorrect_character_pct_over_time.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2213,31 +2466,42 @@ fig_incorrect_characters_by_test_number
 
 # %%
 df_avg_wpm_by_day = df_results.pivot_table(index = 'Local_Start_Date', values = ['WPM', 'Characters'], aggfunc = {'WPM':'mean', 'Characters':'sum'}).reset_index()
-# Limiting the results to dates with at least 5000 characters typed; this 
+character_threshold = 5000
+# The following code limits the results to dates with at least 
+# character_threshold characters typed; this 
 # step will help prevent the chart from getting skewed by dates with
 # very low character counts (which may have unusually high/low average WPMs).
-df_avg_wpm_by_day.query("Characters >= 5000", inplace = True)
+df_avg_wpm_by_day.query("Characters >= @character_threshold", inplace = True)
 df_avg_wpm_by_day.to_csv('Analyses/average_wpm_by_day.csv', index = False)
 df_avg_wpm_by_day.reset_index(drop=True,inplace=True)
 df_avg_wpm_by_day
 
 # %%
-fig_avg_wpm_by_day = px.line(df_avg_wpm_by_day, x = 'Local_Start_Date', y = 'WPM')
+# Note the use of <br>, <sub>, and <i> to add a smaller, italicized
+# subtitle below the chart's main title. See
+# https://plotly.com/chart-studio-help/adding-HTML-and-links-to-charts/
+# for other HTML formatting tags that Plotly supports.
+fig_avg_wpm_by_day = px.line(df_avg_wpm_by_day, x = 'Local_Start_Date', 
+y = 'WPM', title = f'Average WPM by Day<br><sub><i>Note: This chart only \
+includes dates on which at least {character_threshold} characters \
+were typed.</i></sub>')
 fig_avg_wpm_by_day.update_xaxes(type='category')
+fig_avg_wpm_by_day.update_layout(xaxis_title = 'Start Date (Local)')
 fig_avg_wpm_by_day.write_html('Analyses/avg_wpm_by_day.html')
 fig_avg_wpm_by_day.write_image('Analyses/avg_wpm_by_day.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_avg_wpm_by_day
 
-# %%
-df_results.head(3)
-
 # %% [markdown]
-# ### Creating a chart of the days with the highest average WPMs:
+# ### Creating a bar chart that features the days with the highest average WPM results:
 
 # %%
-fig_top_daily_wpm_averages = px.bar(df_avg_wpm_by_day.sort_values('WPM', ascending = False).head(50).copy(), x = 'Local_Start_Date', y = 'WPM', text_auto = '.6s', color = 'Characters')
+fig_top_daily_wpm_averages = px.bar(df_avg_wpm_by_day.sort_values('WPM', ascending = False).head(50).copy(), x = 'Local_Start_Date', y = 'WPM', text_auto = '.6s', color = 'Characters', title = f'Highest Daily WPM Averages\
+<br><sub><i>Note: This chart only \
+includes dates on which at least {character_threshold} characters \
+were typed.</i></sub>')
 fig_top_daily_wpm_averages.update_xaxes(type='category')
+fig_top_daily_wpm_averages.update_layout(xaxis_title = 'Start Date (Local)')
 fig_top_daily_wpm_averages.write_html('Analyses/top_daily_wpm_averages.html')
 fig_top_daily_wpm_averages.write_image('Analyses/top_daily_wpm_averages.png', 
 width = 1920, height = 1080, engine = 'kaleido', scale = 2)
@@ -2259,7 +2523,8 @@ df_wpm_by_percentile.to_csv('Analyses/wpm_by_percentile.csv', index = False)
 df_wpm_by_percentile
 
 # %%
-fig_wpm_by_percentile = px.bar(df_wpm_by_percentile, x = 'Percentile', y = 'WPM', text_auto = '.6s')
+fig_wpm_by_percentile = px.bar(df_wpm_by_percentile, x = 'Percentile', 
+y = 'WPM', text_auto = '.6s', title = 'WPM Percentiles')
 fig_wpm_by_percentile.update_xaxes(type = 'category')
 fig_wpm_by_percentile.write_html('Analyses/wpm_by_percentile.html')
 fig_wpm_by_percentile.write_image('Analyses/wpm_by_percentile.png', width = 1920, 
@@ -2274,7 +2539,9 @@ fig_wpm_by_percentile
 # %%
 # Calculating average WPMs for within-session test numbers:
 
-df_results_by_within_session_test_number = df_results.pivot_table(index = 'Test_#_Within_Session', values = ['WPM', 'Count'], aggfunc = {'WPM':'mean', 'Count':'sum'}).reset_index()
+df_results_by_within_session_test_number = df_results.pivot_table(
+index = 'Test_#_Within_Session', values = ['WPM', 'Count'], 
+aggfunc = {'WPM':'mean', 'Count':'sum'}).reset_index()
 df_results_by_within_session_test_number.query("Count >= 10", inplace = True)
 # The above line prevents rows with low counts from skewing the results.
 df_results_by_within_session_test_number.to_csv('Analyses/results_by_within_session_test_number.csv', index = False)
@@ -2284,9 +2551,17 @@ df_results_by_within_session_test_number
 if len(df_results_by_within_session_test_number) > 0: # The player might not
     # yet have completed more than 10 sessions, in which case the following
     # code should be skipped (as there wouldn't be anything to graph).
-    fig_wpm_by_within_session_test_number = px.line(df_results_by_within_session_test_number, x = 'Test_#_Within_Session', y = 'WPM')
-    fig_wpm_by_within_session_test_number.write_html('Analyses/wpm_by_within_session_test_number.html')
-    fig_wpm_by_within_session_test_number.write_image('Analyses/wpm_by_within_session_test_number.png', width = 1920, 
+    fig_wpm_by_within_session_test_number = px.line(
+    df_results_by_within_session_test_number, 
+    x = 'Test_#_Within_Session', y = 'WPM',
+    title = 'Average WPM by Within-Session Test Number<br><sub><i>Note: Only \
+sessions with at least 10 tests are included in this chart.')
+    fig_wpm_by_within_session_test_number.update_layout(
+    xaxis_title = 'Within-Session Test Number')
+    fig_wpm_by_within_session_test_number.write_html(
+    'Analyses/wpm_by_within_session_test_number.html')
+    fig_wpm_by_within_session_test_number.write_image(
+    'Analyses/wpm_by_within_session_test_number.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
     fig_wpm_by_within_session_test_number
 
@@ -2297,7 +2572,12 @@ latest_session = df_results['Session'].max()
 # on the same graph. This graph will
 # be quite 'busy,' but players can double-click a session number in order 
 # to show results for only that session (which may be more useful).
-fig_session_results = px.line(df_results.query("Session >= @latest_session - 9"), x = 'Test_#_Within_Session', y = 'WPM', color = 'Session')
+fig_session_results = px.line(
+df_results.query("Session >= @latest_session - 9"), 
+x = 'Test_#_Within_Session', y = 'WPM', color = 'Session',
+title = 'WPM by Within-Session Test Number for Last 10 Sessions')
+fig_session_results.update_layout(
+    xaxis_title = 'Within-Session Test Number')
 fig_session_results.write_html('Analyses/latest_session_results.html')
 fig_session_results.write_image('Analyses/latest_session_results.png', width = 1920, 
 height = 1080, engine = 'kaleido', scale = 2)
@@ -2323,9 +2603,18 @@ run_word_analyses
 
 # %%
 if run_word_analyses == 1:
-    df_word_stats_pivot = df_word_stats.pivot_table(index = 'word', values = {'Count', 'typed_word_without_mistakes', 'WPM'}, aggfunc = {'Count':'sum', 'typed_word_without_mistakes':'mean', 'WPM':'median'}).reset_index().sort_values('WPM', ascending = False).reset_index(drop=True)
-    df_word_stats_pivot.rename(columns = {'WPM':'Median WPM'}, inplace = True)
-    df_common_word_stats_pivot = df_word_stats_pivot.query("Count >= 5").copy()
+    df_word_stats_pivot = df_word_stats.pivot_table(index = 'word', 
+    values = {'Count', 'typed_word_without_mistakes', 'WPM'}, 
+    aggfunc = {'Count':'sum', 'typed_word_without_mistakes':'mean', 
+    'WPM':'median'}).reset_index().sort_values(
+    'WPM', ascending = False).reset_index(drop=True)
+    df_word_stats_pivot.rename(columns = {'WPM':'Median WPM', 'word':'Word',
+    'typed_word_without_mistakes':'Mistake-Free Entry Proportion'}, 
+    inplace = True)
+    common_word_cutoff = 5 # This cutoff will be used to create variants
+    # of charts and tables that are limited to commonly typed words.
+    df_common_word_stats_pivot = df_word_stats_pivot.query(
+    "Count >= @common_word_cutoff").copy()
     df_word_stats_pivot.to_csv('Analyses/word_stats_pivot.csv', index = False)
     df_common_word_stats_pivot.to_csv('Analyses/word_stats_pivot_common.csv', 
     index = False)
@@ -2338,7 +2627,8 @@ df_common_word_stats_pivot
 # %%
 if run_word_analyses == 1:
     fig_words_with_highest_median_wpms = px.bar(df_word_stats_pivot.head(100), 
-    x = 'word', y = 'Median WPM', color = 'Count', text_auto = '.6s')
+    x = 'Word', y = 'Median WPM', color = 'Count', text_auto = '.6s',
+    title = 'Words With Highest Median WPMs')
     fig_words_with_highest_median_wpms.write_html('Analyses/words_with_highest_median_wpms.html')
     fig_words_with_highest_median_wpms.write_image('Analyses/words_with_highest_median_wpms.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
@@ -2347,7 +2637,10 @@ if run_word_analyses == 1:
 # %%
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_highest_median_wpms_common = px.bar(df_common_word_stats_pivot.head(100), 
-    x = 'word', y = 'Median WPM', color = 'Count', text_auto = '.6s')
+    x = 'Word', y = 'Median WPM', color = 'Count', text_auto = '.6s',
+    title = f'Words With Highest Median WPMs\
+<br><sub><i>Note: this chart only includes words that have been typed at least \
+{common_word_cutoff} times.</i></sub>')
     fig_words_with_highest_median_wpms_common.write_html('Analyses/words_with_highest_median_wpms_common.html')
     fig_words_with_highest_median_wpms_common.write_image('Analyses/words_with_highest_median_wpms_common.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
@@ -2357,7 +2650,8 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 if run_word_analyses == 1:
     fig_words_with_lowest_median_wpms = px.bar(
     df_word_stats_pivot.sort_values(
-    'Median WPM').head(100), x = 'word', y = 'Median WPM', color = 'Count', text_auto = '.6s')
+    'Median WPM').head(100), x = 'Word', y = 'Median WPM', color = 'Count', 
+    text_auto = '.6s', title = 'Words With Lowest Median WPMs')
     fig_words_with_lowest_median_wpms.write_html(
     'Analyses/words_with_lowest_median_wpms.html')
     fig_words_with_lowest_median_wpms.write_image(
@@ -2369,18 +2663,32 @@ if run_word_analyses == 1:
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_lowest_median_wpms_common = px.bar(
     df_common_word_stats_pivot.sort_values('Median WPM').head(100), 
-    x = 'word', y = 'Median WPM', color = 'Count', text_auto = '.6s')
+    x = 'Word', y = 'Median WPM', color = 'Count', text_auto = '.6s',
+    title = f'Words With Lowest Median WPMs\
+<br><sub><i>Note: this chart only includes words that have been typed at least \
+{common_word_cutoff} times.</i></sub>')
     fig_words_with_lowest_median_wpms_common.write_html('Analyses/words_with_lowest_median_wpms_common.html')
     fig_words_with_lowest_median_wpms_common.write_image('Analyses/words_with_lowest_median_wpms_common.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_median_wpms_common
 
 # %%
+df_common_word_stats_pivot
+
+# %% [markdown]
+# ### Creating charts that show which commonly-typed words have the highest and lowest accuracy rates:
+
+# %%
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_highest_accuracy_rates_common = px.bar(
     df_common_word_stats_pivot.sort_values(
-        'typed_word_without_mistakes', ascending = False).head(100),
-    x = 'word', y = 'typed_word_without_mistakes', color = 'Count', text_auto = '.6s')
+        ['Mistake-Free Entry Proportion', 'Count'], ascending = False).head(100),
+    x = 'Word', y = 'Mistake-Free Entry Proportion', color = 'Count', text_auto = '.2%',
+    title = f'Words With Highest Accuracy Rates\
+<br><sub><i>Note: this chart only includes words that have been typed at least \
+{common_word_cutoff} times.</i></sub>')
+    fig_words_with_highest_accuracy_rates_common.update_layout(
+    yaxis_tickformat = '.0%', yaxis_title = '% of Mistake-Free Entries')
     fig_words_with_highest_accuracy_rates_common.write_html('Analyses/words_with_highest_accuracy_rates_common.html')
     fig_words_with_highest_accuracy_rates_common.write_image('Analyses/words_with_highest_accuracy_rates_common.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
@@ -2390,21 +2698,26 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_lowest_accuracy_rates_common = px.bar(
     df_common_word_stats_pivot.sort_values(
-        'typed_word_without_mistakes').head(100),
-    x = 'word', y = 'typed_word_without_mistakes', color = 'Count', text_auto = '.3s')
+        ['Mistake-Free Entry Proportion', 'Count'], ascending = [True, False]).head(100),
+    x = 'Word', y = 'Mistake-Free Entry Proportion', color = 'Count', text_auto = '.2%',
+    title = f'Words With Lowest Accuracy Rates\
+<br><sub><i>Note: this chart only includes words that have been typed at least \
+{common_word_cutoff} times.</i></sub>')
+    fig_words_with_lowest_accuracy_rates_common.update_layout(
+    yaxis_tickformat = '.0%', yaxis_title = '% of Mistake-Free Entries')
     fig_words_with_lowest_accuracy_rates_common.write_html('Analyses/words_with_lowest_accuracy_rates_common.html')
     fig_words_with_lowest_accuracy_rates_common.write_image('Analyses/words_with_lowest_accuracy_rates_common.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_accuracy_rates_common
 
 # %% [markdown]
-# This script used to show the highest-ever WPMs for individual words, but this code has been removed due to accuracy issues.
+# This script used to show the highest-ever WPMs for individual words, but this code has been removed due to accuracy issues caused by computer lag.
 
 # %%
 analysis_end_time = time.time()
 analysis_time = analysis_end_time - analysis_start_time
 print(f"Finished updating analyses in {round(analysis_time, 3)} seconds. \
-Enter any key to exit.") # Allows the console to stay open when the
+Press Enter to Exit.") # Allows the console to stay open when the
 # .py version of the program is run
 
 input()
