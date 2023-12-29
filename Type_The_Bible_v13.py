@@ -510,6 +510,18 @@ def run_typing_test(verse_order, results_table,
     print(f"Welcome to the typing test! Your verse to type is {book} \
 {chapter}:{verse_number_within_chapter} (verse {verse_order} \
 within the Bible .csv file).\n")
+    
+    # The following if statement provides terminal resizing instructions
+    # so that players can complete longer tests within version v2. (Note that
+    # the terminal's size will get stored soon after this print statement
+    # appears; therefore, in order to update the size, the player will most
+    # likely need to restart the test.)
+    if ((len(verse) >= 1000) & (test_type == 'v2')):
+        print("You may need to resize your terminal in order to successfully \
+complete this test. You can do so by starting the test; exiting out by \
+pressing `; maximizing the terminal; and then restarting this test.")
+
+
     if run_on_notebook == False: # In this case, the typing test 
         # will begin after any keypress due to the use of getch().
         print("Press any key to begin typing!")
@@ -1362,8 +1374,18 @@ been typed.")
                 verses_not_yet_typed.sort()
                 return verses_not_yet_typed[0]
 
-            elif response == 3:
-                return select_verse()
+            elif response == 3: # select_verse() returns two items, but
+                # select_subsequent_verse() only returns one, so we'll
+                # need to determine which single item to return
+                # based on the output of select_verse().
+                verse_order, autostart = select_verse()
+                if autostart == True: # In this case, we'll return
+                    # the autostart enable code (-4).
+                    return -4
+                else: # If autostart is False, we'll just return
+                    # the verse order chosen by select_verse().
+                    return verse_order
+                    
             elif response in [-1, -2, -4]:
                 return response
             else: # A number other than one of the above options was passed.
@@ -1409,9 +1431,6 @@ def calculate_current_day_results(df):
 {unique_verses_string}). Your mean and median WPM today are \
 {average_wpm_today} and {median_wpm_today}, respectively."
     return result_string
-
-# %% [markdown]
-# ## Here with editing (update the documentation below)
 
 # %%
 def run_game(results_table, word_stats_table):
@@ -2180,7 +2199,7 @@ fig_top_10m_by_characters
 print("Creating WPM and accuracy analyses.")
 
 # %% [markdown]
-# Highest WPM results:
+# Highest test WPM results:
 
 # %%
 df_top_100_wpm = df_results.sort_values('WPM', ascending = False).head(
@@ -2199,7 +2218,7 @@ df_top_100_wpm
 
 # %%
 fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM', 
-text_auto = '.6s', hover_data = ['Test #', 'Local_Start_Time'],
+text_auto = '.6s', hover_data = ['Test #', 'Local_Start_Time', 'Book', 'Chapter', 'Verse #', 'Verse_Order'],
 title = 'Highest WPM Results for Individual Tests')
 
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
