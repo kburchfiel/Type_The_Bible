@@ -30,9 +30,15 @@ When you open up Type Through the Bible, you'll first get to choose which versio
 
 *Note: You can find the numbers corresponding to specific verses within WEB_Catholic_Version_for_game_updated.csv. For instance, if you want to type John 1:1, you can scroll down to this verse within the .csv file, identify its verse number (30326), then enter this number into the console.*
 
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Starting_Game.png width="600">
+
 ### Typing a Verse
 
-Once you've made your choice, you'll be presented with a verse to type. You can press any key to begin the test; I suggest using the space bar so that your hands can stay in the home row position. The test will end once you've successfully typed the entire verse (although you can also exit out of a test beforehand by pressing the ` key). The Python code underlying the game will check your response as you write it; green text means that your response is correct so far, whereas red text means that you've made a typo. (Once you've corrected the typo by pressing Backspace and/or Ctrl + Backspace, the red text will become green again.)
+Once you've made your choice, you'll be presented with a verse to type. You can press any key to begin the test; I suggest using the space bar so that your hands can stay in the home row position. The test will end once you've successfully typed the entire verse (although you can also exit out of a test beforehand by pressing the ` key). 
+
+The Python code underlying the game will check your response as you write it; green text means that your response is correct so far, whereas red text means that you've made a typo. (Once you've corrected the typo by pressing Backspace and/or Ctrl + Backspace, the red text will become green again.)
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Finished%20Typing%20Verse.png width="600">
 
 ### Choosing a New Verse
 
@@ -48,6 +54,8 @@ When you're ready to quit, the game will save your progress in the form of three
 
 Because it can take around 30 seconds (on my computer, at least) to update these analyses, you also have the option to skip them. In this case, the game will still save your progress to the aforementioned .csv files. You'll be able to update your analyses as usual the next time you play.
 
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Quitting%20Game.png width="600">
+
 ## Results
 
 Your typing stats and progress will get saved to three .csv files. **results.csv** lists all of the typing tests you have completed. It shows, for each test, the starting date and time; the verse that you typed, along with its book and chapter numbers; your CPS (characters per second) and WPM (words per minute) results; and accuracy data.
@@ -62,14 +70,31 @@ Type Through the Bible produces many different visualizations and analyses of yo
 
 **Verse WPM analyses**, including your average WPM over time; WPM results by day and month; WPM results by Bible book; and WPM histograms. 
 
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/results_by_test_number.png width="600">
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/wpm_by_percentile.png width="600">
+
+
 **Progress analyses**, such as the number of characters you have typed in each book (along with the total number of characters in those books) and the % of each book that has been typed.
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/tree_map_chapters_verses.png width="600">
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/characters_typed_by_book.png width="600">
 
 **Endurance analyses**. These analyses show the highest number of keypresses you have typed in a given hour, 30-minute block, 15-minute block, and 10-minute block. *(Note: these blocks of time start at specific points within the day, so if you want to beat your endurance records, you'll want to start right when these blocks begin. For instance, if you type from 5:30 to 6:30 PM, your first 30 minutes of results will get counted within the 5-to-6-PM hourly block, and your last 30 minutes will get counted within the 6-to-7-PM block. 10-, 15-, and 30-minute blocks begin at minutes that produce a whole number for a quotient when divided by 10, 15, and 30, respectively.)
 
-**Incorrect keypress analyses**, such as your average incorrect keypress percentages over time; your average WPM by incorrect keypress tier; and an incorrect keypress/WPM scatter plot. 
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/top_hours_by_characters.png width="600">
 
 
-**Word-level analyses** These analyses show which words have the highest (and lowest) accuracy rates and median WPMs. (Medians are used instead of means so that computer lag will have a smaller effect on word-level statistics.)
+**Incorrect keypress analyses**, including as your average incorrect keypress percentages over time; your average WPM by incorrect keypress tier; and an incorrect keypress/WPM scatter plot. 
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/incorrect_characters_wpm_scatter.png width="600">
+
+**Word-level analyses.** These analyses reveal which words have the highest (and lowest) accuracy rates and median WPMs. (Medians are used instead of means so that computer lag will have a smaller effect on word-level statistics.)
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/words_with_highest_median_wpms.png width="600">
+
+<img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Selected%20Analyses/words_with_lowest_median_wpms.png width="600">
 
 Visualizations of this data are saved to the Analyses folder in both HTML and PNG format. The HTML files are interactive, whereas the PNG files are easier to share. You can also find .csv versions of certain analyses in this folder as well.
 
@@ -81,5 +106,6 @@ The verses presented in Type Through The Bible come from the Catholic version of
 
 Type Through The Bible's code has been released under the MIT license, allowing you to use it for your own personal and commercial projects. See the project's [License page](https://github.com/kburchfiel/Type_The_Bible/blob/main/LICENSE) for more details. I have added documentation to the game's code to make it easier to interpret. Although the Python file (e.g. Type_The_Bible_v13.py or a later version) should be used to run the game, I recommend referencing the Jupyter notebook (e.g. Type_The_Bible_v13.ipynb) on which that file is based.
 
+## Dedication
 
-
+This project is dedicated to my wife, Allie, who has been very patient with me during the development process. Allie happens to be a very fast typist, so I'm hoping she will enjoy trying out this game herself. :)
