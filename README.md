@@ -98,7 +98,7 @@ Type Through the Bible produces many different visualizations and analyses of yo
 
 Visualizations of this data are saved to the Analyses folder in both HTML and PNG format. The HTML files are interactive, whereas the PNG files are easier to share. You can also find .csv versions of certain analyses in this folder as well.
 
-To see all analyses available, visit [The sample Analyses folder](https://github.com/kburchfiel/Type_The_Bible/tree/main/Analyses) on the Type Through the Bible GitHub page.
+To see all analyses available, visit [the sample Analyses folder](https://github.com/kburchfiel/Type_The_Bible/tree/main/Analyses) on the Type Through the Bible GitHub page.
 
 ## Open-Source Information
 
