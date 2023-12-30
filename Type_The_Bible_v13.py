@@ -5,12 +5,12 @@
 # 
 # *Code is released under the MIT license; Bible verses are from the Web English Bible (Catholic Edition)* and are in the public domain.*
 # 
-# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files.
+# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files. To make it easier to type verses, I also replaced the em dashes in the original file with double hyphens and replaced curly single and double quotes with straight ones.
 
 # %% [markdown]
 # # Instructions for getting started:
 # 
-# If you have just downloaded this game, you may need to make certain updates to the folder directory so that you see your results instead of mine:
+# If you have just downloaded the source code for this game through GitHub, you'll need to make certain updates to the folder directory so that you see your results instead of mine:
 # 
 # 1. Rename WEB_Catholic_Version_for_game_updated.csv as **WEB_Catholic_Version_for_game_updated_sample.csv**; results.csv as **results_sample.csv**; and word_stats.csv as **word_stats_sample.csv** (if these files are present in the directory).
 # 
@@ -19,6 +19,8 @@
 # 1. Delete the Analyses folder (if it already exists).
 # 
 # You're now ready to play!
+# 
+# Note: If you instead downloaded an executable copy of this game from Itch.io, the above steps aren't necessary.
 
 # %% [markdown]
 # Next steps for development: (Not necessarily in order of importance)

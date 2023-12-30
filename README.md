@@ -8,7 +8,7 @@ There are two ways to download and play Type Through The Bible:
 
 ### 1. Downloading the game via Itch.io
 
-The easiest way to download and start playing the game is to visit [its download page on Itch.io](https://kburchfiel.itch.io/type-through-the-bible/download/_8m0BPcyX7XfaJt4np9F1lvXMhU3SXx3ga3OiUwq). This page contains prebuilt executable versions of Type Through The Bible for Windows; Linux and Mac versions will be added soon. 
+The easiest way to download and start playing the game is to visit [its download page on Itch.io](https://kburchfiel.itch.io/type-through-the-bible). This page contains prebuilt executable versions of Type Through The Bible for Windows; Linux and Mac versions will be added soon. 
 
 Windows: Download and unzip the file, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
 
@@ -77,7 +77,7 @@ To see all analyses available, visit [The sample Analyses folder](https://github
 
 ## Open-Source Information
 
-The verses presented in Type Through The Bible come from the Catholic version of the [World English Bible (WEB)](https://ebible.org/web/webfaq.htm). This translation was chosen because it is in the public domain, thus allowing it to be freely distributed. The only change I made to the WEB text was a conversion of all em dashes to double hyphens so that they could be more easily typed by the end user.
+The verses presented in Type Through The Bible come from the Catholic version of the [World English Bible (WEB)](https://ebible.org/web/webfaq.htm). This translation was chosen because it is in the public domain, thus allowing it to be freely distributed. To make it easier to type verses, I replaced the em dashes in the original file with double hyphens and replaced curly single and double quotes with straight ones.
 
 Type Through The Bible's code has been released under the MIT license, allowing you to use it for your own personal and commercial projects. See the project's [License page](https://github.com/kburchfiel/Type_The_Bible/blob/main/LICENSE) for more details. I have added documentation to the game's code to make it easier to interpret. Although the Python file (e.g. Type_The_Bible_v13.py or a later version) should be used to run the game, I recommend referencing the Jupyter notebook (e.g. Type_The_Bible_v13.ipynb) on which that file is based.
 
