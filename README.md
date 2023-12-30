@@ -1,0 +1,77 @@
+## Type Through The Bible: A Typing Game of Biblical Proportions
+
+Type Through The Bible is an open-source computer game that lets you build up your typing skills by writing Bible verses. The game also produces detailed analyses of your results, allowing you to see both your progress in typing the entire Bible and your growth as a typist. These analyses include word-level statistics so that you can identify words that require extra practice.
+
+## Downloading the Game
+
+The easiest way to download and start playing the game is to visit [its download page on Itch.io](https://kburchfiel.itch.io/type-through-the-bible/download/_8m0BPcyX7XfaJt4np9F1lvXMhU3SXx3ga3OiUwq). This page contains prebuilt executable versions of Type Through The Bible for Windows; Linux and Mac versions will be added soon. However, if you are already familiar with Python, you may prefer to download the game [from GitHub](https://github.com/kburchfiel/Type_The_Bible). 
+
+### Itch.io download instructions:
+
+Windows: Download and unzip the file, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
+
+Linux: Download and unzip the file. Next, navigate to the unzipped folder in your terminal and enter ./ + the application's name (e.g. "./Type_The_Bible_v13"). (If you're having trouble with this second step, make sure that Type_The_Bible_v13 is allowed to be executed as a program.)  The other files contained within the folder are also necessary for the game to run.
+
+Note: The zipped files contain both the .exe/application files and other files necessary for the game to run.
+
+## How to Play
+
+### Starting the Game
+
+When you open up Type Through the Bible, you'll first get to choose which version of the typing test to use. (I recommend using V2 since it allows for more detailed statistics and also checks your responses for accuracy in real time; however, if you have trouble getting it to work, you can try V1 instead. This overview assumes that you are using V2.) Next, you'll need to select which verse to type. This can be a random verse; the first verse you haven't yet typed; or a specific verse. 
+
+*Note: You can find the numbers corresponding to specific verses within WEB_Catholic_Version_for_game_updated.csv. For instance, if you want to type John 1:1, you can scroll down to this verse within the .csv file, identify its verse number (30326), then enter this number into the console.*
+
+### Typing a Verse
+
+Once you've made your choice, you'll be presented with a verse to type. You can press any key to begin the test; I suggest using the space bar so that your hands can stay in the home row position. The test will end once you've successfully typed the entire verse (although you can also exit out of a test beforehand by pressing the ` key). The Python code underlying the game will check your response as you write it; green text means that your response is correct so far, whereas red text means that you've made a typo. (Once you've corrected the typo by pressing Backspace and/or Ctrl + Backspace, the red text will become green again.)
+
+### Choosing a New Verse
+
+Once you've entered the last character of the verse successfully, the test will automatically end, and you'll be presented with your results. You'll then get to choose whether to retype the verse; move on to the following verse; type the first verse that you haven't finished yet; or exit the game.
+
+### Autostart
+
+The game also includes an autostart feature. When autostart is enabled, you'll be prompted to start typing a new verse immediately after you've finished typing the preceding verse. This makes for a more intense experience and *may* reduce your individual WPM results (since you won't have any time to review a verse before you start to write it); however, it should help you achieve a new personal best for the most characters typed in a given period. (See the Analyses section for more details about endurance-level statistics.)
+
+### Ending the Game
+
+When you're ready to quit, the game will save your progress in the form of three .csv files: results.csv, WEB_Catholic_Version_for_game_updated.csv, and word_stats.csv. (The Results section describes these files in more detail.) It will then create a number of analyses. Once the game informs you that it has finished updating these analyses, you'll be able to exit the console. 
+
+Because it can take around 30 seconds (on my computer, at least) to update these analyses, you also have the option to skip them. In this case, the game will still save your progress to the aforementioned .csv files. You'll be able to update your analyses as usual the next time you play.
+
+## Results
+
+Your typing stats and progress will get saved to three .csv files. **results.csv** lists all of the typing tests you have completed. It shows, for each test, the starting date and time; the verse that you typed, along with its book and chapter numbers; your CPS (characters per second) and WPM (words per minute) results; and accuracy data.
+
+**WEB_Catholic_Version_for_game_updated.csv** lists all verses in the Catholic edition of the [World English Bible (WEB)](https://ebible.org/web/webfaq.htm), the translation used by the game. This file also shows your highest WPM for each verse along with how many times you've typed it.
+
+**word_stats.csv** shows each word that you have typed along with corresponding CPS and WPM statistics. (I recommend interpreting these stats with caution, as computer lag can lead to incorrectly high or low WPM results.)
+
+## Analyses
+
+Type Through the Bible produces many different visualizations and analyses of your typing test results. These include:
+
+**Verse WPM analyses**, including your average WPM over time; WPM results by day and month; WPM results by Bible book; and WPM histograms. 
+
+**Progress analyses**, such as the number of characters you have typed in each book (along with the total number of characters in those books) and the % of each book that has been typed.
+
+**Endurance analyses**. These analyses show the highest number of keypresses you have typed in a given hour, 30-minute block, 15-minute block, and 10-minute block. *(Note: these blocks of time start at specific points within the day, so if you want to beat your endurance records, you'll want to start right when these blocks begin. For instance, if you type from 5:30 to 6:30 PM, your first 30 minutes of results will get counted within the 5-to-6-PM hourly block, and your last 30 minutes will get counted within the 6-to-7-PM block. 10-, 15-, and 30-minute blocks begin at minutes that produce a whole number for a quotient when divided by 10, 15, and 30, respectively.)
+
+**Incorrect keypress analyses**, such as your average incorrect keypress percentages over time; your average WPM by incorrect keypress tier; and an incorrect keypress/WPM scatter plot. 
+
+
+**Word-level analyses** These analyses show which words have the highest (and lowest) accuracy rates and median WPMs. (Medians are used instead of means so that computer lag will have a smaller effect on word-level statistics.)
+
+Visualizations of this data are saved to the Analyses folder in both HTML and PNG format. The HTML files are interactive, whereas the PNG files are easier to share. You can also find .csv versions of certain analyses in this folder as well.
+
+To see all analyses available, visit [The sample Analyses folder](https://github.com/kburchfiel/Type_The_Bible/tree/main/Analyses) on the Type Through the Bible GitHub page.
+
+## Open-Source Information
+
+The verses presented in Type Through The Bible come from the Catholic version of the [World English Bible (WEB)](https://ebible.org/web/webfaq.htm). This translation was chosen because it is in the public domain, thus allowing it to be freely distributed. The only change I made to the WEB text was a conversion of all em dashes to double hyphens so that they could be more easily typed by the end user.
+
+Type Through The Bible's code has been released under the MIT license, allowing you to use it for your own personal and commercial projects. See the project's [License page](https://github.com/kburchfiel/Type_The_Bible/blob/main/LICENSE) for more details. I have added documentation to the game's code to make it easier to interpret. Although the Python file (e.g. Type_The_Bible_v13.py or a later version) should be used to run the game, I recommend referencing the Jupyter notebook (e.g. Type_The_Bible_v13.ipynb) on which that file is based.
+
+
+
