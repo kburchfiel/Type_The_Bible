@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['Type_The_Bible_v13.py'],
+    ['C:\\Users\\kburc\\D1V1\\Documents\\!Dell64docs\\Programming\\py\\kjb3_programs\\Type_The_Bible\\Type_The_Bible_v13.py'],
     pathex=[],
     binaries=[],
     datas=[],

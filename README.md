@@ -4,15 +4,23 @@ Type Through The Bible is an open-source computer game that lets you build up yo
 
 ## Downloading the Game
 
-The easiest way to download and start playing the game is to visit [its download page on Itch.io](https://kburchfiel.itch.io/type-through-the-bible/download/_8m0BPcyX7XfaJt4np9F1lvXMhU3SXx3ga3OiUwq). This page contains prebuilt executable versions of Type Through The Bible for Windows; Linux and Mac versions will be added soon. However, if you are already familiar with Python, you may prefer to download the game [from GitHub](https://github.com/kburchfiel/Type_The_Bible). 
+There are two ways to download and play Type Through The Bible:
 
-### Itch.io download instructions:
+### 1. Downloading the game via Itch.io
+
+The easiest way to download and start playing the game is to visit [its download page on Itch.io](https://kburchfiel.itch.io/type-through-the-bible/download/_8m0BPcyX7XfaJt4np9F1lvXMhU3SXx3ga3OiUwq). This page contains prebuilt executable versions of Type Through The Bible for Windows; Linux and Mac versions will be added soon. 
 
 Windows: Download and unzip the file, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
 
 Linux: Download and unzip the file. Next, navigate to the unzipped folder in your terminal and enter ./ + the application's name (e.g. "./Type_The_Bible_v13"). (If you're having trouble with this second step, make sure that Type_The_Bible_v13 is allowed to be executed as a program.)  The other files contained within the folder are also necessary for the game to run.
 
 Note: The zipped files contain both the .exe/application files and other files necessary for the game to run.
+
+### 2. Downloading the game's source code from GitHub
+
+If you are already familiar with Python, you may prefer to download the game [from GitHub](https://github.com/kburchfiel/Type_The_Bible). If you choose the latter option, make sure to reference Type_The_Bible_vx*.ipynb to review several steps you'll need to take in order to begin playing. You can then begin playing the game by navigating to the directory and running Type_The_Bible_vx*.py. 
+
+*vx refers to the most recent version, e.g. v13. In the project's folder directory, higher numbers indicate more recent versions.
 
 ## How to Play
 
