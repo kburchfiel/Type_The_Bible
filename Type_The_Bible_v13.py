@@ -5,7 +5,7 @@
 # 
 # *Code is released under the MIT license; Bible verses are from the Web English Bible (Catholic Edition)* and are in the public domain.*
 # 
-# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files. To make it easier to type verses, I also replaced the em dashes in the original file with double hyphens and replaced curly single and double quotes with straight ones.
+# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files. In addition, to make it easier to type verses, I also replaced the em dashes in the original file with double hyphens and replaced curly single and double quotes with straight ones.
 
 # %% [markdown]
 # # Instructions for getting started:
@@ -53,7 +53,8 @@ from colorama import just_fix_windows_console
 # For more information, see # https://github.com/tartley/colorama .
 just_fix_windows_console() 
 
-# Note: You'll also need to have kaleido installed, as it 
+# Note: You'll also need to have kaleido installed if you set 
+# save_image_copies_of_charts (see below) to True, as it 
 # will get called by Plotly later in the program.
 # For Windows, I ran conda install python-kaleido=0.1.0, since a later
 # version of Kaleido didn't work correctly for me. It wasn't necessary
@@ -88,6 +89,12 @@ term = Terminal()
 # %%
 extra_analyses = False # If set to True, additional analyses will be created, 
 # but only when the program is run as a Jupyter notebook.
+save_image_copies_of_charts = False # I had trouble getting Kaleido 
+# (the package that Plotly uses by default to generate screenshots of
+# charts) to run on pyinstaller-generated copies of Type Through The Bible,
+# so I chose to disable image generation by default. (The HTML versions
+# of these charts are more useful anyway, and disabling the screenshot
+# generation also helps the program finish its analyses more quickly.)
 
 # %% [markdown]
 # Checking whether the program is currently running on a Jupyter notebook:
@@ -1764,7 +1771,8 @@ fig_tree_map_books_chapters_verses.write_html(
 # Generating a .png version of this figure takes much longer than does 
 # generating an .html version, so a .png copy will only be created
 # if extra_analyses is set to True.
-if (run_on_notebook == True) & (extra_analyses == True):
+if (run_on_notebook == True) & (extra_analyses == True) \
+& (save_image_copies_of_charts == True):
     fig_tree_map_books_chapters_verses.write_image(
     'Analyses/tree_map_chapters_verses.png', width = 1920, height = 1080, 
     engine = 'kaleido', scale = 2)
@@ -1791,8 +1799,9 @@ if (run_on_notebook == True) & (extra_analyses == True):
         title = 'Proportions of Bible Chapters and Verses That Have Been Typed')
     fig_tree_map_chapters_verses.write_html(
         'Analyses/tree_map_chapters_verses.html')
-    fig_tree_map_chapters_verses.write_image(
-        'Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
+    if save_image_copies_of_charts == True:
+        fig_tree_map_chapters_verses.write_image(
+            'Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
 
 # %%
 # This variant of the tree map shows each verse as its own box, which results in 
@@ -1804,11 +1813,8 @@ if (run_on_notebook == True) & (extra_analyses == True):
     values = 'Characters', color = 'Typed',
     title = 'Proportions of Bible Verses That Have Been Typed')
     fig_tree_map_verses.write_html('Analyses/tree_map_verses.html')
-    # fig_tree_map_verses.write_image('Analyses/tree_map_verses_8K.png', 
-    #                                 width = 7680, height = 4320) # 8K 
-    # resolution isn't sufficient to display the numbers of verses with
-    # relatively low character counts.
-    fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', 
+    if save_image_copies_of_charts == True:
+        fig_tree_map_verses.write_image('Analyses/tree_map_verses_16K.png', 
                                     width = 15360, height = 8640) 
 # fig_tree_map_verses.write_image('Analyses/tree_map_verses.png', width = 30720, 
 # height = 17280) # Didn't end up rendering successfully, probably 
@@ -1845,9 +1851,10 @@ yaxis_title = '% Typed', yaxis_tickformat = ',.2%')
 
 fig_percentage_of_each_book_typed.write_html(
     'Analyses/percentage_of_each_book_typed.html')
-fig_percentage_of_each_book_typed.write_image(
-    'Analyses/percentage_of_each_book_typed.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_percentage_of_each_book_typed.write_image(
+        'Analyses/percentage_of_each_book_typed.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_percentage_of_each_book_typed
 
 # %% [markdown]
@@ -1864,8 +1871,9 @@ yaxis_title = 'Characters', legend_title = 'Variable')
 
 fig_characters_typed_in_each_book.write_html(
     'Analyses/characters_typed_by_book.html')
-fig_characters_typed_in_each_book.write_image(
-    'Analyses/characters_typed_by_book.png', 
+if save_image_copies_of_charts == True:
+    fig_characters_typed_in_each_book.write_image(
+        'Analyses/characters_typed_by_book.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_characters_typed_in_each_book
 
@@ -1897,9 +1905,10 @@ xaxis_title = 'Book', yaxis_title = 'Characters')
 
 fig_characters_typed_in_each_book_and_chapter.write_html(
     'Analyses/characters_typed_by_book_and_chapter.html')
-fig_characters_typed_in_each_book_and_chapter.write_image(
-    'Analyses/characters_typed_by_book_and_chapter.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_characters_typed_in_each_book_and_chapter.write_image(
+        'Analyses/characters_typed_by_book_and_chapter.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_characters_typed_in_each_book_and_chapter
 
 # %% [markdown]
@@ -1966,9 +1975,10 @@ x = 'Rank and Date', y = 'Characters', text = 'Characters', title =
 fig_top_dates_by_characters.update_xaxes(tickangle = 90)
 
 fig_top_dates_by_characters.write_html('Analyses/top_dates_by_characters.html')
-fig_top_dates_by_characters.write_image(
-    'Analyses/top_dates_by_characters.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_dates_by_characters.write_image(
+        'Analyses/top_dates_by_characters.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_dates_by_characters
 
 # %%
@@ -1995,9 +2005,10 @@ title = 'Highest Daily Verse Counts')
 fig_top_dates_by_verses.update_xaxes(tickangle = 90)
 
 fig_top_dates_by_verses.write_html('Analyses/top_dates_by_verses.html')
-fig_top_dates_by_verses.write_image(
-    'Analyses/top_dates_by_verses.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_dates_by_verses.write_image(
+        'Analyses/top_dates_by_verses.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_dates_by_verses
 
 # %% [markdown]
@@ -2031,9 +2042,10 @@ fig_top_months_by_characters.update_xaxes(tickangle = 90)
 
 fig_top_months_by_characters.write_html(
     'Analyses/top_months_by_characters.html')
-fig_top_months_by_characters.write_image(
-    'Analyses/top_months_by_characters.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_months_by_characters.write_image(
+        'Analyses/top_months_by_characters.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_months_by_characters
 
 # %%
@@ -2067,9 +2079,10 @@ title = 'Highest Monthly Verse Counts')
 fig_top_months_by_verses.update_xaxes(tickangle = 90)
 
 fig_top_months_by_verses.write_html('Analyses/top_months_by_verses.html')
-fig_top_months_by_verses.write_image(
-    'Analyses/top_months_by_verses.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_months_by_verses.write_image(
+        'Analyses/top_months_by_verses.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_months_by_verses
 
 # %% [markdown]
@@ -2095,9 +2108,10 @@ title = 'Highest Hourly Character Counts')
 fig_top_hours_by_characters.update_xaxes(type = 'category')
 
 fig_top_hours_by_characters.write_html('Analyses/top_hours_by_characters.html')
-fig_top_hours_by_characters.write_image(
-    'Analyses/top_hours_by_characters.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_hours_by_characters.write_image(
+        'Analyses/top_hours_by_characters.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_hours_by_characters
 
 # %%
@@ -2124,9 +2138,10 @@ fig_top_30m_by_characters.update_xaxes(type = 'category')
 
 fig_top_30m_by_characters.write_html(
 'Analyses/top_30m_blocks_by_characters.html')
-fig_top_30m_by_characters.write_image(
-    'Analyses/top_30m_blocks_by_characters.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_30m_by_characters.write_image(
+        'Analyses/top_30m_blocks_by_characters.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_30m_by_characters
 
 # %%
@@ -2155,9 +2170,10 @@ fig_top_15m_by_characters.update_xaxes(type = 'category')
 
 fig_top_15m_by_characters.write_html(
 'Analyses/top_15m_blocks_by_characters.html')
-fig_top_15m_by_characters.write_image(
-    'Analyses/top_15m_blocks_by_characters.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_15m_by_characters.write_image(
+        'Analyses/top_15m_blocks_by_characters.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_15m_by_characters
 
 # %%
@@ -2186,9 +2202,10 @@ fig_top_10m_by_characters.update_xaxes(type = 'category')
 
 fig_top_10m_by_characters.write_html(
 'Analyses/top_10m_blocks_by_characters.html')
-fig_top_10m_by_characters.write_image(
-    'Analyses/top_10m_blocks_by_characters.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_10m_by_characters.write_image(
+        'Analyses/top_10m_blocks_by_characters.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_10m_by_characters
 
 # %% [markdown]
@@ -2224,8 +2241,9 @@ text_auto = '.6s', hover_data = ['Test #', 'Local_Start_Time', 'Book', 'Chapter'
 title = 'Highest WPM Results for Individual Tests')
 
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
-fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_100_wpm.write_image('Analyses/top_100_wpm.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_100_wpm
 
 # %% [markdown]
@@ -2251,9 +2269,12 @@ if len(df_results) >= 10:
     title = 'Highest 10-Test WPM Averages')
     fig_top_last_10_average_wpm.update_layout(yaxis_title = 'Average WPM over Last 10 Tests')
 
-    fig_top_last_10_average_wpm.write_html('Analyses/top_last_10_average_wpm.html')
-    fig_top_last_10_average_wpm.write_image('Analyses/top_last_10_average_wpm.png', 
-    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+    fig_top_last_10_average_wpm.write_html(
+        'Analyses/top_last_10_average_wpm.html')
+    if save_image_copies_of_charts == True:
+        fig_top_last_10_average_wpm.write_image(
+            'Analyses/top_last_10_average_wpm.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
     fig_top_last_10_average_wpm
 
 # %% [markdown]
@@ -2269,8 +2290,9 @@ title = 'WPM by Test Number')
 fig_df_results_by_test_number.update_layout(yaxis_title = 'WPM')
 
 fig_df_results_by_test_number.write_html('Analyses/results_by_test_number.html')
-fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_df_results_by_test_number
 
 # %% [markdown]
@@ -2287,8 +2309,9 @@ yaxis_title = 'Number of Tests')
 # in between histogram bars. See https://stackoverflow.com/a/62925197/13097194
 
 fig_wpm_histogram.write_html('Analyses/wpm_histogram.html')
-fig_wpm_histogram.write_image('Analyses/wpm_histogram.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_wpm_histogram.write_image('Analyses/wpm_histogram.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_wpm_histogram
 
 
@@ -2298,8 +2321,9 @@ text_auto = True, title = 'WPM Histogram for Last 1000 Tests')
 fig_wpm_histogram_last_1000.update_layout(bargroupgap = 0.1, xaxis_title = 'WPM', 
 yaxis_title = 'Number of Tests') 
 fig_wpm_histogram_last_1000.write_html('Analyses/wpm_histogram_last_1000.html')
-fig_wpm_histogram_last_1000.write_image('Analyses/wpm_histogram_last_1000.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_wpm_histogram_last_1000.write_image('Analyses/wpm_histogram_last_1000.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_wpm_histogram_last_1000
 
 
@@ -2328,8 +2352,9 @@ fig_results_by_month.update_xaxes(type = 'category') # This line, based on
 fig_results_by_month.update_layout(legend_title_text = 'Test Count')
 
 fig_results_by_month.write_html('Analyses/results_by_month.html')
-fig_results_by_month.write_image('Analyses/results_by_month.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_results_by_month.write_image('Analyses/results_by_month.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_results_by_month
 
 # %% [markdown]
@@ -2349,8 +2374,9 @@ y = 'WPM', color = 'Number of Tests', text_auto = '.6s',
 title = 'Average WPM by Hour')
 fig_results_by_hour.update_layout(xaxis_title = 'Hour')
 fig_results_by_hour.write_html('Analyses/results_by_hour.html')
-fig_results_by_hour.write_image('Analyses/results_by_hour.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_results_by_hour.write_image('Analyses/results_by_hour.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_results_by_hour
 
 # %% [markdown]
@@ -2389,8 +2415,9 @@ x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm, label =
 # work, except that I reduced the size of the DataFrame by 1 when excluding
 # the 'Total' book.
 fig_mean_wpm_by_book.write_html('Analyses/mean_wpm_by_book.html')
-fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920, 
-height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920, 
+    height = 1080, engine = 'kaleido', scale = 2)
 fig_mean_wpm_by_book
 
 
@@ -2417,9 +2444,11 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     len(df_results.query("Mistake_Free_Test == 1")) >= 1):
     fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s', color = 'Tests', title = 'Average WPM by Mistake-Free Status')
     fig_wpm_by_mistake_free_status.update_layout(xaxis_title = 'Mistake-Free Test')
-    fig_wpm_by_mistake_free_status.write_html('Analyses/mean_wpm_by_mistake_free_status.html')
-    fig_wpm_by_mistake_free_status.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    fig_wpm_by_mistake_free_status.write_html(
+'Analyses/mean_wpm_by_mistake_free_status.html')
+    if save_image_copies_of_charts == True:
+        fig_wpm_by_mistake_free_status.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_wpm_by_mistake_free_status
 
 # %% [markdown]
@@ -2440,8 +2469,9 @@ title = 'Comparison Between Incorrect Character % and WPM')
 
 
 fig_incorrect_characters_wpm_scatter.write_html('Analyses/incorrect_characters_wpm_scatter.html')
-fig_incorrect_characters_wpm_scatter.write_image('Analyses/incorrect_characters_wpm_scatter.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_incorrect_characters_wpm_scatter.write_image('Analyses/incorrect_characters_wpm_scatter.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_incorrect_characters_wpm_scatter
 
 # %%
@@ -2451,8 +2481,9 @@ histfunc = 'avg', nbins = 20, text_auto = '.6s',
 title = 'Average WPM for Different Character Percentage Bins')
 fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1, yaxis_title = 'Average WPM')
 fig_accuracy_wpm_histogram.write_html('Analyses/incorrect_characters_wpm_histogram.html')
-fig_accuracy_wpm_histogram.write_image('Analyses/incorrect_characters_wpm_histogram.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_accuracy_wpm_histogram.write_image('Analyses/incorrect_characters_wpm_histogram.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_accuracy_wpm_histogram
 
 
@@ -2462,8 +2493,9 @@ x = 'Incorrect Characters as % of Verse Length', nbins = 20, text_auto = True,
 title = 'Incorrect Character Percentage Histogram')
 fig_accuracy_count_histogram.update_layout(bargroupgap = 0.1, yaxis_title = '# of Tests')
 fig_accuracy_count_histogram.write_html('Analyses/incorrect_character_pct_histogram.html')
-fig_accuracy_count_histogram.write_image('Analyses/incorrect_character_pct_histogram.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_accuracy_count_histogram.write_image('Analyses/incorrect_character_pct_histogram.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_accuracy_count_histogram
 
 # %% [markdown]
@@ -2478,8 +2510,9 @@ y = ['Incorrect Characters as % of Verse Length',
      title = 'Incorrect Characters as % of Verse Length by Test Number')
 fig_incorrect_characters_by_test_number.update_layout(yaxis_title='Percentage')
 fig_incorrect_characters_by_test_number.write_html('Analyses/incorrect_character_pct_over_time.html')
-fig_incorrect_characters_by_test_number.write_image('Analyses/incorrect_character_pct_over_time.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+     fig_incorrect_characters_by_test_number.write_image('Analyses/incorrect_character_pct_over_time.png', 
+     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_incorrect_characters_by_test_number
 
 # %% [markdown]
@@ -2509,8 +2542,9 @@ were typed.</i></sub>')
 fig_avg_wpm_by_day.update_xaxes(type='category')
 fig_avg_wpm_by_day.update_layout(xaxis_title = 'Start Date (Local)')
 fig_avg_wpm_by_day.write_html('Analyses/avg_wpm_by_day.html')
-fig_avg_wpm_by_day.write_image('Analyses/avg_wpm_by_day.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_avg_wpm_by_day.write_image('Analyses/avg_wpm_by_day.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_avg_wpm_by_day
 
 # %% [markdown]
@@ -2524,8 +2558,9 @@ were typed.</i></sub>')
 fig_top_daily_wpm_averages.update_xaxes(type='category')
 fig_top_daily_wpm_averages.update_layout(xaxis_title = 'Start Date (Local)')
 fig_top_daily_wpm_averages.write_html('Analyses/top_daily_wpm_averages.html')
-fig_top_daily_wpm_averages.write_image('Analyses/top_daily_wpm_averages.png', 
-width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_top_daily_wpm_averages.write_image('Analyses/top_daily_wpm_averages.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 
 fig_top_daily_wpm_averages
 
@@ -2548,8 +2583,9 @@ fig_wpm_by_percentile = px.bar(df_wpm_by_percentile, x = 'Percentile',
 y = 'WPM', text_auto = '.6s', title = 'WPM Percentiles')
 fig_wpm_by_percentile.update_xaxes(type = 'category')
 fig_wpm_by_percentile.write_html('Analyses/wpm_by_percentile.html')
-fig_wpm_by_percentile.write_image('Analyses/wpm_by_percentile.png', width = 1920, 
-height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_wpm_by_percentile.write_image('Analyses/wpm_by_percentile.png', width = 1920, 
+    height = 1080, engine = 'kaleido', scale = 2)
 fig_wpm_by_percentile
 
 # %% [markdown]
@@ -2581,9 +2617,10 @@ sessions with at least 10 tests are included in this chart.')
     xaxis_title = 'Within-Session Test Number')
     fig_wpm_by_within_session_test_number.write_html(
     'Analyses/wpm_by_within_session_test_number.html')
-    fig_wpm_by_within_session_test_number.write_image(
-    'Analyses/wpm_by_within_session_test_number.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_wpm_by_within_session_test_number.write_image(
+        'Analyses/wpm_by_within_session_test_number.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_wpm_by_within_session_test_number
 
 # %%
@@ -2600,8 +2637,9 @@ title = 'WPM by Within-Session Test Number for Last 10 Sessions')
 fig_session_results.update_layout(
     xaxis_title = 'Within-Session Test Number')
 fig_session_results.write_html('Analyses/latest_session_results.html')
-fig_session_results.write_image('Analyses/latest_session_results.png', width = 1920, 
-height = 1080, engine = 'kaleido', scale = 2)
+if save_image_copies_of_charts == True:
+    fig_session_results.write_image('Analyses/latest_session_results.png', width = 1920, 
+    height = 1080, engine = 'kaleido', scale = 2)
 fig_session_results
 
 # %% [markdown]
@@ -2651,8 +2689,9 @@ if run_word_analyses == 1:
     x = 'Word', y = 'Median WPM', color = 'Count', text_auto = '.6s',
     title = 'Words With Highest Median WPMs')
     fig_words_with_highest_median_wpms.write_html('Analyses/words_with_highest_median_wpms.html')
-    fig_words_with_highest_median_wpms.write_image('Analyses/words_with_highest_median_wpms.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_words_with_highest_median_wpms.write_image('Analyses/words_with_highest_median_wpms.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_highest_median_wpms
 
 # %%
@@ -2663,8 +2702,9 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 <br><sub><i>Note: this chart only includes words that have been typed at least \
 {common_word_cutoff} times.</i></sub>')
     fig_words_with_highest_median_wpms_common.write_html('Analyses/words_with_highest_median_wpms_common.html')
-    fig_words_with_highest_median_wpms_common.write_image('Analyses/words_with_highest_median_wpms_common.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_words_with_highest_median_wpms_common.write_image('Analyses/words_with_highest_median_wpms_common.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_highest_median_wpms_common
 
 # %%
@@ -2675,9 +2715,10 @@ if run_word_analyses == 1:
     text_auto = '.6s', title = 'Words With Lowest Median WPMs')
     fig_words_with_lowest_median_wpms.write_html(
     'Analyses/words_with_lowest_median_wpms.html')
-    fig_words_with_lowest_median_wpms.write_image(
-    'Analyses/words_with_lowest_median_wpms.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_words_with_lowest_median_wpms.write_image(
+        'Analyses/words_with_lowest_median_wpms.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_median_wpms
 
 # %%
@@ -2689,8 +2730,9 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 <br><sub><i>Note: this chart only includes words that have been typed at least \
 {common_word_cutoff} times.</i></sub>')
     fig_words_with_lowest_median_wpms_common.write_html('Analyses/words_with_lowest_median_wpms_common.html')
-    fig_words_with_lowest_median_wpms_common.write_image('Analyses/words_with_lowest_median_wpms_common.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_words_with_lowest_median_wpms_common.write_image('Analyses/words_with_lowest_median_wpms_common.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_median_wpms_common
 
 # %%
@@ -2711,8 +2753,9 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_highest_accuracy_rates_common.update_layout(
     yaxis_tickformat = '.0%', yaxis_title = '% of Mistake-Free Entries')
     fig_words_with_highest_accuracy_rates_common.write_html('Analyses/words_with_highest_accuracy_rates_common.html')
-    fig_words_with_highest_accuracy_rates_common.write_image('Analyses/words_with_highest_accuracy_rates_common.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_words_with_highest_accuracy_rates_common.write_image('Analyses/words_with_highest_accuracy_rates_common.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_highest_accuracy_rates_common
 
 # %%
@@ -2727,8 +2770,9 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_lowest_accuracy_rates_common.update_layout(
     yaxis_tickformat = '.0%', yaxis_title = '% of Mistake-Free Entries')
     fig_words_with_lowest_accuracy_rates_common.write_html('Analyses/words_with_lowest_accuracy_rates_common.html')
-    fig_words_with_lowest_accuracy_rates_common.write_image('Analyses/words_with_lowest_accuracy_rates_common.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    if save_image_copies_of_charts == True:
+        fig_words_with_lowest_accuracy_rates_common.write_image('Analyses/words_with_lowest_accuracy_rates_common.png', width = 1920, 
+        height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_accuracy_rates_common
 
 # %% [markdown]

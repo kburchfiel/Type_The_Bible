@@ -4,3 +4,4 @@ LEV 7:14
 NUM 21:28 (capital 'The' in the middle of a sentence)
 NUM 25:14 and NUM 25:15 (fathers' instead of father's?)
 5068 (Deuteronomy)--space after Em dash?
+5587 (Deutoronomy)--commandments?
