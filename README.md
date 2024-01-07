@@ -2,13 +2,15 @@
 
 Type Through The Bible is an open-source computer game that lets you build up your typing skills by writing Bible verses. The game also produces detailed analyses of your results, allowing you to see both your progress in typing the entire Bible and your growth as a typist. These analyses include word-level statistics so that you can identify words that require extra practice.
 
+**A video overview of Type Through The Bible with gameplay footage can be found [at this link](https://youtu.be/z4cRMBTL4DM).**
+
 ## Downloading the Game
 
 There are two ways to download and play Type Through The Bible:
 
 ### 1. Downloading the game via Itch.io
 
-The easiest way to download and start playing the game is to visit [its download page on Itch.io](https://kburchfiel.itch.io/type-through-the-bible). This page contains prebuilt executable versions of Type Through The Bible for Windows; Linux and Mac versions will be added soon. 
+The easiest way to download and start playing the game is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page contains prebuilt executable versions of Type Through The Bible for Windows and Linux; a Mac version will be added soon. 
 
 Windows: Download and unzip the file, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
 
