@@ -1304,8 +1304,8 @@ respectively. Your WPM percentile was {latest_percentile} \
             print("Autosave complete.")
         except: # If one of these files is open, the autosave might not have
             # worked correctly.
-            print("At least one of the autosave files could not be saved. Close \
-    out of any open autosave files so that they can be updated later on.")
+            print("At least one of the autosave files could not be saved. \
+Close out of any open autosave files so that they can be updated later on.")
     return (results_table, word_stats_table, autostart)
 
 
@@ -1432,6 +1432,8 @@ def calculate_current_day_results(df):
             else:
                 unique_verses_string = 'verses'
 
+            # Rounding the average and median WPM values
+            # makes the output more readable.
             average_wpm_today = round(df_current_day_results['WPM'].mean(), 3)
             median_wpm_today = round(df_current_day_results['WPM'].median(), 3)
             result_string = f"So far today, you have typed \
@@ -1532,12 +1534,18 @@ by hitting the ` (backtick) key.")
 
 
 
+# %% [markdown]
+# Now that all of our gameplay functions have been defined, we can call run_game() to allow the user to play Type Through The Bible.
+
 # %%
 df_results, df_word_stats, run_analyses = run_game(results_table = df_results, 
 word_stats_table = df_word_stats)
 
-# %%
-df_results
+# %% [markdown]
+# # Post-Gameplay Code:
+
+# %% [markdown]
+# At this point in the script, the player has chosen to exit out of the game. Therefore, the script will now save his/her results via 3 .csv files and then begin creating analyses of those results.
 
 # %% [markdown]
 # If df_results is blank (e.g. because the player exited out of his/her first typing test during his/her first game), some of the following code will likely crash, because they are expecting results to be present within df_results. Therefore, the program will exit out early instead of continuing on.
@@ -1550,12 +1558,23 @@ analyze. Exiting program in 5 seconds.")
     raise SystemExit # See https://stackoverflow.com/a/19747562/13097194
 
 # %%
-# Updating certain df_Bible columns to reflect new results:
+# Several columns within df_Bible will now be updated 
+# to reflect the player's progress.
 
 # %%
-df_Bible['Characters_Typed'] = df_Bible['Characters'] * df_Bible['Typed']
+# The 'Characters_Typed' column will have a value of 0 for verses the player
+# has not yet typed; for typed verses, it will show the number of characters
+# within that verse.
+df_Bible['Characters_Typed'] = df_Bible['Characters'] * df_Bible['Typed'] 
+
+# The Total_Characters_Typed column will increase in value for a given verse
+# each time the player types that verse; this is not the case for 
+# the 'Characters_Typed' column.
 df_Bible['Total_Characters_Typed'] = df_Bible['Characters'] * df_Bible['Tests']
 df_Bible
+
+# %% [markdown]
+# The following cell calculates the player's overall progress in typing the Bible, then shares that progress via a print statement.
 
 # %%
 characters_typed_sum = df_Bible['Characters_Typed'].sum()
@@ -1578,14 +1597,20 @@ which represents {round(100*proportion_of_Bible_typed, 4)}% of the Bible.")
 # and Windows systems, however.
 df_results['Local_Start_Time'] = pd.to_datetime(df_results['Local_Start_Time'])
 
+# %% [markdown]
+# Here with editing (continue adding/updating documentation in subsequent cells)
+
 # %%
 df_results['Last 10 Avg'] = df_results['WPM'].rolling(10).mean()
 df_results['Last 100 Avg'] = df_results['WPM'].rolling(100).mean()
 df_results['Last 1000 Avg'] = df_results['WPM'].rolling(1000).mean()
 
-df_results['Incorrect Character % Last 10 Avg'] = df_results['Incorrect Characters as % of Verse Length'].rolling(10).mean()
-df_results['Incorrect Character % Last 100 Avg'] = df_results['Incorrect Characters as % of Verse Length'].rolling(100).mean()
-df_results['Incorrect Character % Last 1000 Avg'] = df_results['Incorrect Characters as % of Verse Length'].rolling(1000).mean()
+df_results['Incorrect Character % Last 10 Avg'] = df_results[
+'Incorrect Characters as % of Verse Length'].rolling(10).mean()
+df_results['Incorrect Character % Last 100 Avg'] = df_results[
+'Incorrect Characters as % of Verse Length'].rolling(100).mean()
+df_results['Incorrect Character % Last 1000 Avg'] = df_results[
+'Incorrect Characters as % of Verse Length'].rolling(1000).mean()
 
 
 df_results['Local_Start_Year'] = df_results['Local_Start_Time'].dt.year
@@ -1650,7 +1675,8 @@ df_results['Test_#_Within_Session'] = 0
 
 
 session_col = df_results.columns.get_loc('Session')
-test_number_within_session_col = df_results.columns.get_loc('Test_#_Within_Session')
+test_number_within_session_col = df_results.columns.get_loc(
+'Test_#_Within_Session')
 local_start_time_col = df_results.columns.get_loc('Local_Start_Time')
 local_end_time_col = df_results.columns.get_loc('Local_End_Time')
 new_session_cutoff = 300 # The loop below will calculate the time between
@@ -1667,7 +1693,8 @@ df_results.iloc[0, test_number_within_session_col] = 1
 for i in range(1, len(df_results)): # Starting at 1 because we'll be looking
     # back one row during each iteration of the loop.
     previous_row_session = df_results.iloc[i-1, session_col]
-    previous_row_test_within_session = df_results.iloc[i-1, test_number_within_session_col]
+    previous_row_test_within_session = df_results.iloc[
+    i-1, test_number_within_session_col]
     if (df_results.iloc[i, local_start_time_col] - 
         df_results.iloc[i-1, local_end_time_col]).seconds >= new_session_cutoff:
         # In this case, a new session will be assigned to this row.
@@ -1676,7 +1703,8 @@ for i in range(1, len(df_results)): # Starting at 1 because we'll be looking
     else: # Otherwise, this row will be interpreted as a continuation
         # of the previous session.
         df_results.iloc[i, session_col] = previous_row_session
-        df_results.iloc[i, test_number_within_session_col] = previous_row_test_within_session + 1
+        df_results.iloc[i, test_number_within_session_col
+        ] = previous_row_test_within_session + 1
 
 df_results
 
@@ -1686,7 +1714,8 @@ df_results
 # %%
 df_word_stats['Count'] = 1
 df_word_stats['characters'] = df_word_stats['word'].str.len()
-df_word_stats['CPS'] = df_word_stats['characters'] / (df_word_stats['word_duration (ms)'] / 1000)
+df_word_stats['CPS'] = df_word_stats['characters'] / (
+df_word_stats['word_duration (ms)'] / 1000)
 df_word_stats['WPM'] = df_word_stats['CPS'] * 12
 df_word_stats
 
@@ -1707,12 +1736,13 @@ def attempt_save(df, filename, index):
             df.to_csv(filename, index = index)
             return
         except:
-            print("File could not be saved, likely because it is currently open. \
-Try closing the file and trying again. Press Enter to retry.")
+            print("File could not be saved, likely because it is currently \
+open. Try closing the file and trying again. Press Enter to retry.")
             input()
 
 # %%
-attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', index = True)
+attempt_save(df_Bible, 'WEB_Catholic_Version_for_game_updated.csv', 
+index = True)
 # The verse_order index will be stored within this .csv file so that it can
 # be accessed during the subsequent run.
 
@@ -1725,6 +1755,11 @@ attempt_save(df_word_stats, 'word_stats.csv', index = False)
 # %%
 print("Successfully saved updated copies of the Results, Word Stats, \
 and Bible .csv files.")
+
+# %% [markdown]
+# # Creating analyses:
+# 
+# The script will now create a number of speed, accuracy, endurance analyses. It will also generate several visualizations of word-level statistics.
 
 # %%
 if run_analyses == 0: # In this case, the analysis portion of the script will
@@ -1801,7 +1836,8 @@ if (run_on_notebook == True) & (extra_analyses == True):
         'Analyses/tree_map_chapters_verses.html')
     if save_image_copies_of_charts == True:
         fig_tree_map_chapters_verses.write_image(
-            'Analyses/tree_map_chapters_verses.png', width = 7680, height = 4320)
+        'Analyses/tree_map_chapters_verses.png', 
+        width = 7680, height = 4320)
 
 # %%
 # This variant of the tree map shows each verse as its own box, which results in 
@@ -1830,8 +1866,8 @@ print("Creating progress analyses.")
 df_characters_typed_by_book = df_Bible.pivot_table(index = ['Book_Order', 
 'Book_Name'], values = ['Characters', 'Characters_Typed'], 
 aggfunc = 'sum').reset_index()
-df_characters_typed_by_book.rename(columns={'Characters_Typed':'Characters Typed'}, 
-inplace = True)
+df_characters_typed_by_book.rename(
+columns={'Characters_Typed':'Characters Typed'}, inplace = True)
 # Adding 'Book_Order' as the first index value allows for the pivot tables
 # and bars to be ordered by that value.
 df_characters_typed_by_book['Proportion Typed'] = df_characters_typed_by_book[
@@ -1946,15 +1982,16 @@ print("Analyzing typing activity by period.")
 
 # %%
 df_top_dates_by_characters = df_results.pivot_table(
-    index = ['Local_Start_Date', 'Local_End_Date'], values = 'Characters', aggfunc = 'sum').reset_index(
-    ).sort_values('Characters', ascending = False)
+index = ['Local_Start_Date', 'Local_End_Date'], values = 'Characters', 
+aggfunc = 'sum').reset_index().sort_values('Characters', ascending = False)
 # By using both the start and end dates as pivot index values, we've already 
 # separated results with different start and end dates from ones whose 
 # start and end dates are the same. (This will prevent the tests included
 # in a given date's calculation from extending beyond just that date.)
 # We'll also filter the DataFrame to exclude any results whose start
 # and end dates differ:
-df_top_dates_by_characters = df_top_dates_by_characters.query("Local_Start_Date == Local_End_Date").head(50).copy()
+df_top_dates_by_characters = df_top_dates_by_characters.query(
+"Local_Start_Date == Local_End_Date").head(50).copy()
 df_top_dates_by_characters['Rank'] = df_top_dates_by_characters[
     'Characters'].rank(ascending = False, method = 'min').astype('int')
 # Creating a column that shows both the rank and date: (This also prevents
@@ -2031,7 +2068,8 @@ df_top_months_by_characters['Rank and Month'] = '#'+df_top_months_by_characters[
         'Local_Start_Year'].astype('str') + '-' + df_top_months_by_characters[
             'Local_Start_Month'].astype('str')
 df_top_months_by_characters.reset_index(drop=True,inplace=True)
-df_top_months_by_characters.to_csv('Analyses/top_months_by_characters.csv', index = False)
+df_top_months_by_characters.to_csv('Analyses/top_months_by_characters.csv', 
+index = False)
 df_top_months_by_characters
 
 # %%
@@ -2069,7 +2107,8 @@ df_top_months_by_verses['Rank and Month'] = '#'+df_top_months_by_verses[
         'Local_Start_Year'].astype('str') + '-' + df_top_months_by_verses[
             'Local_Start_Month'].astype('str')
 df_top_months_by_verses.reset_index(drop=True,inplace=True)
-df_top_months_by_verses.to_csv('Analyses/top_months_by_verses.csv', index = False)
+df_top_months_by_verses.to_csv('Analyses/top_months_by_verses.csv', 
+index = False)
 df_top_months_by_verses
 
 # %%
@@ -2098,7 +2137,8 @@ Local_Start_Hour == Local_End_Hour").head(100).copy()
 df_top_hours_by_characters['Hour'] = df_top_hours_by_characters[
 'Local_Start_Date'].astype('str') + ' ' + df_top_hours_by_characters[
 'Local_Start_Hour'].astype('str') 
-df_top_hours_by_characters.to_csv('Analyses/top_hours_by_characters.csv', index = False)
+df_top_hours_by_characters.to_csv('Analyses/top_hours_by_characters.csv', 
+index = False)
 df_top_hours_by_characters
 
 # %%
@@ -2127,7 +2167,8 @@ df_top_30m_by_characters['30-Minute Block'] = df_top_30m_by_characters[
 'Local_Start_Date'].astype('str') + ' ' + df_top_30m_by_characters[
 'Local_Start_Hour'].astype('str') + '_' + df_top_30m_by_characters[
 'Local_Start_30_Minute_Block'].astype('str')
-df_top_30m_by_characters.to_csv('Analyses/top_30m_by_characters.csv', index = False)
+df_top_30m_by_characters.to_csv('Analyses/top_30m_by_characters.csv', 
+index = False)
 df_top_30m_by_characters
 
 # %%
@@ -2159,7 +2200,8 @@ df_top_15m_by_characters['15-Minute Block'] = df_top_15m_by_characters[
 'Local_Start_Hour'].astype('str') + '_' + df_top_15m_by_characters[
 'Local_Start_15_Minute_Block'].astype('str')
 # print(len(df_top_15m_by_characters))
-df_top_15m_by_characters.to_csv('Analyses/top_15m_by_characters.csv', index = False)
+df_top_15m_by_characters.to_csv('Analyses/top_15m_by_characters.csv', 
+index = False)
 df_top_15m_by_characters
 
 # %%
@@ -2191,7 +2233,8 @@ df_top_10m_by_characters['10-Minute Block'] = df_top_10m_by_characters[
 'Local_Start_Hour'].astype('str') + '_' + df_top_10m_by_characters[
 'Local_Start_10_Minute_Block'].astype('str')
 # print(len(df_top_10m_by_characters))
-df_top_10m_by_characters.to_csv('Analyses/top_10m_by_characters.csv', index = False)
+df_top_10m_by_characters.to_csv('Analyses/top_10m_by_characters.csv', 
+index = False)
 df_top_10m_by_characters
 
 # %%
@@ -2237,7 +2280,8 @@ df_top_100_wpm
 
 # %%
 fig_top_100_wpm = px.bar(df_top_100_wpm, x = 'Rank', y = 'WPM', 
-text_auto = '.6s', hover_data = ['Test #', 'Local_Start_Time', 'Book', 'Chapter', 'Verse #', 'Verse_Order'],
+text_auto = '.6s', hover_data = ['Test #', 'Local_Start_Time', 'Book', 
+'Chapter', 'Verse #', 'Verse_Order'],
 title = 'Highest WPM Results for Individual Tests')
 
 fig_top_100_wpm.write_html('Analyses/top_100_wpm.html')
@@ -2255,19 +2299,28 @@ if len(df_results) >= 10: # If fewer than 10 tests are present in df_results,
     # an error), so this section should be skipped.
     df_top_last_10_avg_results = df_results.sort_values(
     'Last 10 Avg', ascending = False).head(20).copy()
+    
+    # If the user has completed fewer than 30 races, there will still be some
+    # NaN 'Last 10 Avg' values within this dataset, so we'll want to 
+    # remove those in order to avoid an IntCastingNaN error later in this
+    # cell. The following dropna() call removes those NaN values.
+    df_top_last_10_avg_results.dropna(subset = ['Last 10 Avg'], inplace = True)
     df_top_last_10_avg_results.insert(0, 'Rank', 
     df_top_last_10_avg_results['Last 10 Avg'].rank(ascending = False, 
     method = 'min').astype('int'))
     df_top_last_10_avg_results['Test #'] = df_top_last_10_avg_results.index
-    df_top_last_10_avg_results.to_csv('Analyses/top_last_10_avg_results.csv', index = False)
+    df_top_last_10_avg_results.to_csv('Analyses/top_last_10_avg_results.csv', 
+    index = False)
     df_top_last_10_avg_results
 
 # %%
 if len(df_results) >= 10:
-    fig_top_last_10_average_wpm = px.bar(df_top_last_10_avg_results, x = 'Rank', 
-    y = 'Last 10 Avg', text_auto = '.6s', hover_data=['Test #', 'Local_Start_Time'],
+    fig_top_last_10_average_wpm = px.bar(df_top_last_10_avg_results, 
+    x = 'Rank', y = 'Last 10 Avg', 
+    text_auto = '.6s', hover_data=['Test #', 'Local_Start_Time'],
     title = 'Highest 10-Test WPM Averages')
-    fig_top_last_10_average_wpm.update_layout(yaxis_title = 'Average WPM over Last 10 Tests')
+    fig_top_last_10_average_wpm.update_layout(
+    yaxis_title = 'Average WPM over Last 10 Tests')
 
     fig_top_last_10_average_wpm.write_html(
         'Analyses/top_last_10_average_wpm.html')
@@ -2284,14 +2337,19 @@ if len(df_results) >= 10:
 df_results
 
 # %%
-fig_df_results_by_test_number = px.line(df_results.rename(columns = {'cumulative_avg':'Cumulative Avg'}), x = df_results.index, 
+fig_df_results_by_test_number = px.line(df_results.rename(
+columns = {'cumulative_avg':'Cumulative Avg'}), x = df_results.index, 
 y = ['WPM', 'Last 10 Avg', 'Last 100 Avg', 'Last 1000 Avg', 'Cumulative Avg'],
 title = 'WPM by Test Number')
+# If data are not yet available for some of these Y values 
+# (e.g. 'Last 100 Avg'), they won't appear on the graph, but that missing data 
+# won't produce an error.
 fig_df_results_by_test_number.update_layout(yaxis_title = 'WPM')
 
 fig_df_results_by_test_number.write_html('Analyses/results_by_test_number.html')
 if save_image_copies_of_charts == True:
-    fig_df_results_by_test_number.write_image('Analyses/results_by_test_number.png', 
+    fig_df_results_by_test_number.write_image(
+    'Analyses/results_by_test_number.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_df_results_by_test_number
 
@@ -2316,13 +2374,15 @@ fig_wpm_histogram
 
 
 # %%
-fig_wpm_histogram_last_1000 = px.histogram(x = df_results.tail(1000)['WPM'], nbins = 50, 
-text_auto = True, title = 'WPM Histogram for Last 1000 Tests')
-fig_wpm_histogram_last_1000.update_layout(bargroupgap = 0.1, xaxis_title = 'WPM', 
+fig_wpm_histogram_last_1000 = px.histogram(x = df_results.tail(1000)['WPM'], 
+nbins = 50, text_auto = True, title = 'WPM Histogram for Last 1000 Tests')
+fig_wpm_histogram_last_1000.update_layout(bargroupgap = 0.1, 
+xaxis_title = 'WPM', 
 yaxis_title = 'Number of Tests') 
 fig_wpm_histogram_last_1000.write_html('Analyses/wpm_histogram_last_1000.html')
 if save_image_copies_of_charts == True:
-    fig_wpm_histogram_last_1000.write_image('Analyses/wpm_histogram_last_1000.png', 
+    fig_wpm_histogram_last_1000.write_image(
+    'Analyses/wpm_histogram_last_1000.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_wpm_histogram_last_1000
 
@@ -2337,13 +2397,15 @@ df_results_by_month = df_results.pivot_table(
 df_results_by_month['Year/Month'] = df_results_by_month[
     'Local_Start_Year'].astype('str') + '-' + df_results_by_month[
     'Local_Start_Month'].astype('str')
-df_results_by_month.rename(columns = {'Count':'Number of Tests'}, inplace = True)
+df_results_by_month.rename(columns = {'Count':'Number of Tests'}, 
+inplace = True)
 df_results_by_month.to_csv('Analyses/results_by_month.csv', index = False)
 df_results_by_month
 
 # %%
 fig_results_by_month = px.bar(df_results_by_month, x = 'Year/Month', 
-y = 'WPM', color = 'Number of Tests', text_auto = '.6s', title = 'Average WPM by Month')
+y = 'WPM', color = 'Number of Tests', text_auto = '.6s', 
+title = 'Average WPM by Month')
 fig_results_by_month.update_xaxes(type = 'category') # This line, based on
 # Pracheta's response at https://stackoverflow.com/a/64424308/13097194,
 # updates the axes to show the date-month pairs as strings rather than 
@@ -2406,9 +2468,13 @@ total_mean_wpm = df_wpm_by_book.query("Book == 'Total'").iloc[0]['WPM']
 total_mean_wpm
 
 fig_mean_wpm_by_book = px.bar(df_wpm_by_book.query("Book != 'Total'"), 
-x = 'Book', y = 'WPM', color = 'Tests', text_auto = '.6s', title = 'Average WPM by Book')
+x = 'Book', y = 'WPM', color = 'Tests', text_auto = '.6s', 
+title = 'Average WPM by Book')
 fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, 
-x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm, label = {'textposition':'end','text':f'Average WPM across books: {total_mean_wpm.round(3)}'})
+x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, 
+y1 = total_mean_wpm, label = {
+'textposition':'end','text':f'Average WPM across books: {total_mean_wpm.round(
+3)}'})
 # See https://plotly.com/python/shapes/ for the add_shape() code.
 # The use of -0.5 and len() - 1.5 is based on gleasocd's answer at 
 # https://stackoverflow.com/a/40408960/13097194 . len(df) - 0.5 would normally
@@ -2416,8 +2482,8 @@ x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, y1 = total_mean_wpm, label =
 # the 'Total' book.
 fig_mean_wpm_by_book.write_html('Analyses/mean_wpm_by_book.html')
 if save_image_copies_of_charts == True:
-    fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', width = 1920, 
-    height = 1080, engine = 'kaleido', scale = 2)
+    fig_mean_wpm_by_book.write_image('Analyses/mean_wpm_by_book.png', 
+    width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_mean_wpm_by_book
 
 
@@ -2430,10 +2496,15 @@ fig_mean_wpm_by_book
 # compare these two outcomes.)
 if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     len(df_results.query("Mistake_Free_Test == 1")) >= 1):
-    df_wpm_by_mistake_free_status = df_results.pivot_table(index = 'Mistake_Free_Test', values = ['WPM', 'Count'], aggfunc = {'WPM':'mean', 'Count':'sum'}).reset_index()
-    df_wpm_by_mistake_free_status.rename(columns = {'Count':'Tests'}, inplace = True)
-    df_wpm_by_mistake_free_status['Mistake_Free_Test'].replace({0:'No', 1:'Yes'}, inplace = True)
-    df_wpm_by_mistake_free_status.to_csv('Analyses/wpm_by_mistake_free_status.csv', index = False)
+    df_wpm_by_mistake_free_status = df_results.pivot_table(
+    index = 'Mistake_Free_Test', values = ['WPM', 'Count'], 
+    aggfunc = {'WPM':'mean', 'Count':'sum'}).reset_index()
+    df_wpm_by_mistake_free_status.rename(columns = {'Count':'Tests'}, 
+    inplace = True)
+    df_wpm_by_mistake_free_status['Mistake_Free_Test'].replace(
+    {0:'No', 1:'Yes'}, inplace = True)
+    df_wpm_by_mistake_free_status.to_csv(
+    'Analyses/wpm_by_mistake_free_status.csv', index = False)
     df_wpm_by_mistake_free_status
 
 # %%
@@ -2442,12 +2513,16 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 # to compare these two outcomes.)
 if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     len(df_results.query("Mistake_Free_Test == 1")) >= 1):
-    fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s', color = 'Tests', title = 'Average WPM by Mistake-Free Status')
-    fig_wpm_by_mistake_free_status.update_layout(xaxis_title = 'Mistake-Free Test')
+    fig_wpm_by_mistake_free_status = px.bar(df_wpm_by_mistake_free_status, 
+    x = 'Mistake_Free_Test', y = 'WPM', text_auto = '.6s', 
+    color = 'Tests', title = 'Average WPM by Mistake-Free Status')
+    fig_wpm_by_mistake_free_status.update_layout(
+    xaxis_title = 'Mistake-Free Test')
     fig_wpm_by_mistake_free_status.write_html(
 'Analyses/mean_wpm_by_mistake_free_status.html')
     if save_image_copies_of_charts == True:
-        fig_wpm_by_mistake_free_status.write_image('Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
+        fig_wpm_by_mistake_free_status.write_image(
+        'Analyses/mean_wpm_by_mistake_free_status.png', width = 1920, 
         height = 1080, engine = 'kaleido', scale = 2)
     fig_wpm_by_mistake_free_status
 
@@ -2455,22 +2530,26 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 # ### Evaluating the relationship between incorrect keypresses as a % of verse length and WPM:
 
 # %%
-# Note: the following code created a runtime error within the pyinstaller-created
+# Note: the following code created a runtime error within the 
+# pyinstaller-created
 # .exe version of the program, so I'm excluding the "trendline = 'ols'" 
 # component for now. Hopefully I can find a way to get that code to work
 # in the future.
 # fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
 # x = 'Incorrect Characters as % of Verse Length', y = 'WPM', trendline = 'ols')
-# # Note that you can hover over the best fit line to see the regression results.
+# # Note that you can hover over the best fit line to see the 
+# regression results.
 
 fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
 x = 'Incorrect Characters as % of Verse Length', y = 'WPM', 
 title = 'Comparison Between Incorrect Character % and WPM')
 
 
-fig_incorrect_characters_wpm_scatter.write_html('Analyses/incorrect_characters_wpm_scatter.html')
+fig_incorrect_characters_wpm_scatter.write_html(
+'Analyses/incorrect_characters_wpm_scatter.html')
 if save_image_copies_of_charts == True:
-    fig_incorrect_characters_wpm_scatter.write_image('Analyses/incorrect_characters_wpm_scatter.png', 
+    fig_incorrect_characters_wpm_scatter.write_image(
+    'Analyses/incorrect_characters_wpm_scatter.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_incorrect_characters_wpm_scatter
 
@@ -2479,10 +2558,13 @@ fig_accuracy_wpm_histogram = px.histogram(df_results,
 x = 'Incorrect Characters as % of Verse Length', y = 'WPM', 
 histfunc = 'avg', nbins = 20, text_auto = '.6s',
 title = 'Average WPM for Different Character Percentage Bins')
-fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1, yaxis_title = 'Average WPM')
-fig_accuracy_wpm_histogram.write_html('Analyses/incorrect_characters_wpm_histogram.html')
+fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1, 
+yaxis_title = 'Average WPM')
+fig_accuracy_wpm_histogram.write_html(
+'Analyses/incorrect_characters_wpm_histogram.html')
 if save_image_copies_of_charts == True:
-    fig_accuracy_wpm_histogram.write_image('Analyses/incorrect_characters_wpm_histogram.png', 
+    fig_accuracy_wpm_histogram.write_image(
+    'Analyses/incorrect_characters_wpm_histogram.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_accuracy_wpm_histogram
 
@@ -2491,10 +2573,13 @@ fig_accuracy_wpm_histogram
 fig_accuracy_count_histogram = px.histogram(df_results, 
 x = 'Incorrect Characters as % of Verse Length', nbins = 20, text_auto = True,
 title = 'Incorrect Character Percentage Histogram')
-fig_accuracy_count_histogram.update_layout(bargroupgap = 0.1, yaxis_title = '# of Tests')
-fig_accuracy_count_histogram.write_html('Analyses/incorrect_character_pct_histogram.html')
+fig_accuracy_count_histogram.update_layout(
+bargroupgap = 0.1, yaxis_title = '# of Tests')
+fig_accuracy_count_histogram.write_html(
+'Analyses/incorrect_character_pct_histogram.html')
 if save_image_copies_of_charts == True:
-    fig_accuracy_count_histogram.write_image('Analyses/incorrect_character_pct_histogram.png', 
+    fig_accuracy_count_histogram.write_image(
+    'Analyses/incorrect_character_pct_histogram.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_accuracy_count_histogram
 
@@ -2502,16 +2587,19 @@ fig_accuracy_count_histogram
 # ### Visualizing trends in accuracy over time:
 
 # %%
-fig_incorrect_characters_by_test_number = px.line(df_results, x = df_results.index, 
+fig_incorrect_characters_by_test_number = px.line(
+df_results, x = df_results.index, 
 y = ['Incorrect Characters as % of Verse Length',
-     'Incorrect Character % Last 10 Avg',
-     'Incorrect Character % Last 100 Avg',
-     'Incorrect Character % Last 1000 Avg'],
-     title = 'Incorrect Characters as % of Verse Length by Test Number')
+'Incorrect Character % Last 10 Avg',
+'Incorrect Character % Last 100 Avg',
+'Incorrect Character % Last 1000 Avg'],
+title = 'Incorrect Characters as % of Verse Length by Test Number')
 fig_incorrect_characters_by_test_number.update_layout(yaxis_title='Percentage')
-fig_incorrect_characters_by_test_number.write_html('Analyses/incorrect_character_pct_over_time.html')
+fig_incorrect_characters_by_test_number.write_html(
+'Analyses/incorrect_character_pct_over_time.html')
 if save_image_copies_of_charts == True:
-     fig_incorrect_characters_by_test_number.write_image('Analyses/incorrect_character_pct_over_time.png', 
+     fig_incorrect_characters_by_test_number.write_image(
+     'Analyses/incorrect_character_pct_over_time.png', 
      width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_incorrect_characters_by_test_number
 
@@ -2519,7 +2607,9 @@ fig_incorrect_characters_by_test_number
 # ### Average WPM by day:
 
 # %%
-df_avg_wpm_by_day = df_results.pivot_table(index = 'Local_Start_Date', values = ['WPM', 'Characters'], aggfunc = {'WPM':'mean', 'Characters':'sum'}).reset_index()
+df_avg_wpm_by_day = df_results.pivot_table(index = 'Local_Start_Date', 
+values = ['WPM', 'Characters'], aggfunc = {
+'WPM':'mean', 'Characters':'sum'}).reset_index()
 character_threshold = 5000
 # The following code limits the results to dates with at least 
 # character_threshold characters typed; this 
@@ -2551,7 +2641,10 @@ fig_avg_wpm_by_day
 # ### Creating a bar chart that features the days with the highest average WPM results:
 
 # %%
-fig_top_daily_wpm_averages = px.bar(df_avg_wpm_by_day.sort_values('WPM', ascending = False).head(50).copy(), x = 'Local_Start_Date', y = 'WPM', text_auto = '.6s', color = 'Characters', title = f'Highest Daily WPM Averages\
+fig_top_daily_wpm_averages = px.bar(df_avg_wpm_by_day.sort_values(
+'WPM', ascending = False).head(50).copy(), x = 'Local_Start_Date', 
+y = 'WPM', text_auto = '.6s', color = 'Characters', 
+title = f'Highest Daily WPM Averages\
 <br><sub><i>Note: This chart only \
 includes dates on which at least {character_threshold} characters \
 were typed.</i></sub>')
@@ -2559,7 +2652,8 @@ fig_top_daily_wpm_averages.update_xaxes(type='category')
 fig_top_daily_wpm_averages.update_layout(xaxis_title = 'Start Date (Local)')
 fig_top_daily_wpm_averages.write_html('Analyses/top_daily_wpm_averages.html')
 if save_image_copies_of_charts == True:
-    fig_top_daily_wpm_averages.write_image('Analyses/top_daily_wpm_averages.png', 
+    fig_top_daily_wpm_averages.write_image(
+    'Analyses/top_daily_wpm_averages.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 
 fig_top_daily_wpm_averages
@@ -2568,7 +2662,8 @@ fig_top_daily_wpm_averages
 # ### Calculating WPM percentile data:
 
 # %%
-df_wpm_by_percentile = df_results['WPM'].quantile(q = np.arange(0, 1.05, 0.05)).transpose().reset_index()
+df_wpm_by_percentile = df_results['WPM'].quantile(
+q = np.arange(0, 1.05, 0.05)).transpose().reset_index()
 df_wpm_by_percentile.columns = ['Percentile', 'WPM']
 df_wpm_by_percentile['Percentile'] = (
 df_wpm_by_percentile['Percentile']*100).astype('int')
@@ -2584,7 +2679,8 @@ y = 'WPM', text_auto = '.6s', title = 'WPM Percentiles')
 fig_wpm_by_percentile.update_xaxes(type = 'category')
 fig_wpm_by_percentile.write_html('Analyses/wpm_by_percentile.html')
 if save_image_copies_of_charts == True:
-    fig_wpm_by_percentile.write_image('Analyses/wpm_by_percentile.png', width = 1920, 
+    fig_wpm_by_percentile.write_image(
+    'Analyses/wpm_by_percentile.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
 fig_wpm_by_percentile
 
@@ -2601,7 +2697,8 @@ index = 'Test_#_Within_Session', values = ['WPM', 'Count'],
 aggfunc = {'WPM':'mean', 'Count':'sum'}).reset_index()
 df_results_by_within_session_test_number.query("Count >= 10", inplace = True)
 # The above line prevents rows with low counts from skewing the results.
-df_results_by_within_session_test_number.to_csv('Analyses/results_by_within_session_test_number.csv', index = False)
+df_results_by_within_session_test_number.to_csv(
+'Analyses/results_by_within_session_test_number.csv', index = False)
 df_results_by_within_session_test_number
 
 # %%
@@ -2638,7 +2735,8 @@ fig_session_results.update_layout(
     xaxis_title = 'Within-Session Test Number')
 fig_session_results.write_html('Analyses/latest_session_results.html')
 if save_image_copies_of_charts == True:
-    fig_session_results.write_image('Analyses/latest_session_results.png', width = 1920, 
+    fig_session_results.write_image(
+    'Analyses/latest_session_results.png', width = 1920, 
     height = 1080, engine = 'kaleido', scale = 2)
 fig_session_results
 
@@ -2688,22 +2786,27 @@ if run_word_analyses == 1:
     fig_words_with_highest_median_wpms = px.bar(df_word_stats_pivot.head(100), 
     x = 'Word', y = 'Median WPM', color = 'Count', text_auto = '.6s',
     title = 'Words With Highest Median WPMs')
-    fig_words_with_highest_median_wpms.write_html('Analyses/words_with_highest_median_wpms.html')
+    fig_words_with_highest_median_wpms.write_html(
+    'Analyses/words_with_highest_median_wpms.html')
     if save_image_copies_of_charts == True:
-        fig_words_with_highest_median_wpms.write_image('Analyses/words_with_highest_median_wpms.png', width = 1920, 
+        fig_words_with_highest_median_wpms.write_image(
+        'Analyses/words_with_highest_median_wpms.png', width = 1920, 
         height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_highest_median_wpms
 
 # %%
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
-    fig_words_with_highest_median_wpms_common = px.bar(df_common_word_stats_pivot.head(100), 
+    fig_words_with_highest_median_wpms_common = px.bar(
+    df_common_word_stats_pivot.head(100), 
     x = 'Word', y = 'Median WPM', color = 'Count', text_auto = '.6s',
     title = f'Words With Highest Median WPMs\
 <br><sub><i>Note: this chart only includes words that have been typed at least \
 {common_word_cutoff} times.</i></sub>')
-    fig_words_with_highest_median_wpms_common.write_html('Analyses/words_with_highest_median_wpms_common.html')
+    fig_words_with_highest_median_wpms_common.write_html(
+    'Analyses/words_with_highest_median_wpms_common.html')
     if save_image_copies_of_charts == True:
-        fig_words_with_highest_median_wpms_common.write_image('Analyses/words_with_highest_median_wpms_common.png', width = 1920, 
+        fig_words_with_highest_median_wpms_common.write_image(
+        'Analyses/words_with_highest_median_wpms_common.png', width = 1920, 
         height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_highest_median_wpms_common
 
@@ -2729,9 +2832,11 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     title = f'Words With Lowest Median WPMs\
 <br><sub><i>Note: this chart only includes words that have been typed at least \
 {common_word_cutoff} times.</i></sub>')
-    fig_words_with_lowest_median_wpms_common.write_html('Analyses/words_with_lowest_median_wpms_common.html')
+    fig_words_with_lowest_median_wpms_common.write_html(
+    'Analyses/words_with_lowest_median_wpms_common.html')
     if save_image_copies_of_charts == True:
-        fig_words_with_lowest_median_wpms_common.write_image('Analyses/words_with_lowest_median_wpms_common.png', width = 1920, 
+        fig_words_with_lowest_median_wpms_common.write_image(
+        'Analyses/words_with_lowest_median_wpms_common.png', width = 1920, 
         height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_median_wpms_common
 
@@ -2745,16 +2850,19 @@ df_common_word_stats_pivot
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_highest_accuracy_rates_common = px.bar(
     df_common_word_stats_pivot.sort_values(
-        ['Mistake-Free Entry Proportion', 'Count'], ascending = False).head(100),
-    x = 'Word', y = 'Mistake-Free Entry Proportion', color = 'Count', text_auto = '.2%',
+    ['Mistake-Free Entry Proportion', 'Count'], ascending = False).head(100),
+    x = 'Word', y = 'Mistake-Free Entry Proportion', color = 'Count', 
+    text_auto = '.2%',
     title = f'Words With Highest Accuracy Rates\
 <br><sub><i>Note: this chart only includes words that have been typed at least \
 {common_word_cutoff} times.</i></sub>')
     fig_words_with_highest_accuracy_rates_common.update_layout(
     yaxis_tickformat = '.0%', yaxis_title = '% of Mistake-Free Entries')
-    fig_words_with_highest_accuracy_rates_common.write_html('Analyses/words_with_highest_accuracy_rates_common.html')
+    fig_words_with_highest_accuracy_rates_common.write_html(
+    'Analyses/words_with_highest_accuracy_rates_common.html')
     if save_image_copies_of_charts == True:
-        fig_words_with_highest_accuracy_rates_common.write_image('Analyses/words_with_highest_accuracy_rates_common.png', width = 1920, 
+        fig_words_with_highest_accuracy_rates_common.write_image(
+        'Analyses/words_with_highest_accuracy_rates_common.png', width = 1920, 
         height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_highest_accuracy_rates_common
 
@@ -2762,16 +2870,20 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
     fig_words_with_lowest_accuracy_rates_common = px.bar(
     df_common_word_stats_pivot.sort_values(
-        ['Mistake-Free Entry Proportion', 'Count'], ascending = [True, False]).head(100),
-    x = 'Word', y = 'Mistake-Free Entry Proportion', color = 'Count', text_auto = '.2%',
+    ['Mistake-Free Entry Proportion', 'Count'], 
+    ascending = [True, False]).head(100),
+    x = 'Word', y = 'Mistake-Free Entry Proportion', color = 'Count', 
+    text_auto = '.2%',
     title = f'Words With Lowest Accuracy Rates\
 <br><sub><i>Note: this chart only includes words that have been typed at least \
 {common_word_cutoff} times.</i></sub>')
     fig_words_with_lowest_accuracy_rates_common.update_layout(
     yaxis_tickformat = '.0%', yaxis_title = '% of Mistake-Free Entries')
-    fig_words_with_lowest_accuracy_rates_common.write_html('Analyses/words_with_lowest_accuracy_rates_common.html')
+    fig_words_with_lowest_accuracy_rates_common.write_html(
+    'Analyses/words_with_lowest_accuracy_rates_common.html')
     if save_image_copies_of_charts == True:
-        fig_words_with_lowest_accuracy_rates_common.write_image('Analyses/words_with_lowest_accuracy_rates_common.png', width = 1920, 
+        fig_words_with_lowest_accuracy_rates_common.write_image(
+        'Analyses/words_with_lowest_accuracy_rates_common.png', width = 1920, 
         height = 1080, engine = 'kaleido', scale = 2)
     fig_words_with_lowest_accuracy_rates_common
 
