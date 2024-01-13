@@ -2472,9 +2472,8 @@ x = 'Book', y = 'WPM', color = 'Tests', text_auto = '.6s',
 title = 'Average WPM by Book')
 fig_mean_wpm_by_book.add_shape(type = 'line', x0 = -0.5, 
 x1 = len(df_wpm_by_book) -1.5, y0 = total_mean_wpm, 
-y1 = total_mean_wpm, label = {
-'textposition':'end','text':f'Average WPM across books: {total_mean_wpm.round(
-3)}'})
+y1 = total_mean_wpm, label = {'textposition':'end',
+'text':f'Average overall WPM: {total_mean_wpm.round(3)}'})
 # See https://plotly.com/python/shapes/ for the add_shape() code.
 # The use of -0.5 and len() - 1.5 is based on gleasocd's answer at 
 # https://stackoverflow.com/a/40408960/13097194 . len(df) - 0.5 would normally
