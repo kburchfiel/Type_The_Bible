@@ -2351,6 +2351,7 @@ if save_image_copies_of_charts == True:
     fig_df_results_by_test_number.write_image(
     'Analyses/results_by_test_number.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+
 fig_df_results_by_test_number
 
 # %% [markdown]
