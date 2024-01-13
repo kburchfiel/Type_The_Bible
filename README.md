@@ -10,11 +10,11 @@ There are two ways to download and play Type Through The Bible:
 
 ### 1. Downloading the game via Itch.io
 
-The easiest way to download and start playing the game is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page contains prebuilt executable versions of Type Through The Bible for Windows and Linux; a Mac version will be added soon. 
+The easiest way to download and start playing the game is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page contains prebuilt executable versions of Type Through The Bible for Windows, Mac, and Linux.
 
 Windows: Download and unzip the file, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
 
-Linux: Download and unzip the file. Next, navigate to the unzipped folder in your terminal and enter ./ + the application's name (e.g. "./Type_The_Bible_v13"). (If you're having trouble with this second step, make sure that Type_The_Bible_v13 is allowed to be executed as a program.)  The other files contained within the folder are also necessary for the game to run.
+Mac and Linux: Download and unzip the file. Next, navigate to the unzipped folder in your terminal and enter ./ + the application's name (e.g. "./Type_The_Bible_v13"). (If you're having trouble with this second step, make sure that Type_The_Bible_v13 is allowed to be executed as a program.)  The other files contained within the folder are also necessary for the game to run.
 
 Note: The zipped files contain both the .exe/application files and other files necessary for the game to run.
 
@@ -39,6 +39,8 @@ When you open up Type Through the Bible, you'll first get to choose which versio
 Once you've made your choice, you'll be presented with a verse to type. You can press any key to begin the test; I suggest using the space bar so that your hands can stay in the home row position. The test will end once you've successfully typed the entire verse (although you can also exit out of a test beforehand by pressing the ` key). 
 
 The Python code underlying the game will check your response as you write it; green text means that your response is correct so far, whereas red text means that you've made a typo. (Once you've corrected the typo by pressing Backspace and/or Ctrl + Backspace, the red text will become green again.)
+
+**​Note regarding the Mac version**: To delete a whole word when typing, use Fn + Delete. However, this will only work if there is not a space between the word and the cursor. Therefore, you'll need to press Delete until you get to the word and then hit Fn + Delete to actually delete it. (For the Windows and Linux versions, you can use Ctrl + Backspace to delete both the most recent word and any space before the word.)
 
 <img src = https://raw.githubusercontent.com/kburchfiel/Type_The_Bible/main/Screenshots/Finished%20Typing%20Verse.png width="600">
 

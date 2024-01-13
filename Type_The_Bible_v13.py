@@ -69,10 +69,21 @@ just_fix_windows_console()
 # a single character will be removed; meanwhile, when word_backspace 
 # is detected, a whole word
 # will be removed.
+# I also found that both Delete and Command + Delete produced the same
+# bytestring on Macs, so I instead added in Fn + Delete (which maps
+# to the bytestring b'\x7e') as a Ctrl + Backspace equivalent. However, this
+# combination will only delete the word if there's no space in between
+# the cursor and the word. Therefore, to delete words,
+# Mac players will have to first press Delete to get to the word, then
+# Fn + Delete to delete the word.
+
 import platform
 if platform.system() == 'Linux':
     character_backspace = b'\x7f'
     word_backspace = b'\x08'
+if platform.system() == 'Darwin':
+    character_backspace = b'\x7f'
+    word_backspace = b'\x7e'
 else:
     character_backspace = b'\x08'
     word_backspace = b'\x7f'
@@ -631,8 +642,7 @@ pressing `; maximizing the terminal; and then restarting this test.")
             # it will be highlighted red. (This allows the player to be 
             # notified of an error without the need for a line break
             # in the console, which could prove distracting.)
-            # This function has been tested on Windows and on Linux, but not yet 
-            # on a Mac.
+            # This function has been tested on Windows, Mac, and Linux systems.
             verse_response = '' # This string will store the player's 
             # response.
             no_mistakes = 1 # This flag will get set to 0 if the player makes
