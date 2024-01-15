@@ -10,7 +10,7 @@ There are two ways to download and play Type Through The Bible:
 
 ### 1. Downloading the game via Itch.io
 
-The easiest way to download and start playing the game is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page provides zipped folders that contain prebuilt executable versions of Type Through The Bible for Windows, Mac, and Linux. The other files contained within the folder are also necessary for the game to run.
+The easiest way to download and start playing the game, at least for Windows and Linux users, is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page provides zipped folders that contain prebuilt executable versions of Type Through The Bible for Windows, Mac, and Linux. The other files contained within the folder are also necessary for the game to run.
 
 Windows: Download and unzip the folder, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
 
