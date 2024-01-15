@@ -10,13 +10,13 @@ There are two ways to download and play Type Through The Bible:
 
 ### 1. Downloading the game via Itch.io
 
-The easiest way to download and start playing the game is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page contains prebuilt executable versions of Type Through The Bible for Windows, Mac, and Linux.
+The easiest way to download and start playing the game is to visit [its Itch.io page](https://kburchfiel.itch.io/type-through-the-bible). This page provides zipped folders that contain prebuilt executable versions of Type Through The Bible for Windows, Mac, and Linux. The other files contained within the folder are also necessary for the game to run.
 
-Windows: Download and unzip the file, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
+Windows: Download and unzip the folder, then double-click the .exe file to launch the game. The other files contained within the folder are also necessary for the game to run.
 
-Mac and Linux: Download and unzip the file. Next, navigate to the unzipped folder in your terminal and enter ./ + the application's name (e.g. "./Type_The_Bible_v13"). (If you're having trouble with this second step, make sure that Type_The_Bible_v13 is allowed to be executed as a program.)  The other files contained within the folder are also necessary for the game to run.
+Linux: Download and unzip the folder. Next, navigate to the unzipped folder in your terminal and enter ./ + the application's name (e.g. "./Type_The_Bible_v13"). (If you're having trouble with this second step, make sure that Type_The_Bible_v13 is allowed to be executed as a program.)  The other files contained within the folder are also necessary for the game to run.
 
-Note: The zipped files contain both the .exe/application files and other files necessary for the game to run.
+Mac: **This program is unsigned. Therefore, in order to successfully run the executable, you would need to disable and then re-enable Gatekeeper AT YOUR OWN RISK. I strongly recommend that, instead of taking these steps, you run the program on Windows or Linux instead. Alternatively, you can run the game's Python file by downloading the source code from GitHub (see steps below).**
 
 ### 2. Downloading the game's source code from GitHub
 
