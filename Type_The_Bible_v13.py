@@ -166,6 +166,22 @@ else:
 df_results
 
 
+# %%
+df_results['Local_Start_Time']
+
+# %%
+# # If you accidentally overwrote your Local_Start_Time values with something
+# # different, you can retrieve them using the following code:
+# # (Make sure to replace the time zone passed to tz_convert() with
+# # your own time zone.)
+# df_results['UTC_Start_Time'] = pd.to_datetime(
+# df_results['UTC_Start_Time']).astype('datetime64[us, UTC]')
+# df_results['Local_Start_Time'] = df_results['UTC_Start_Time'].dt.tz_convert(
+# 'America/New_York').dt.tz_localize(None)
+# # The above line was based on 
+# # https://stackoverflow.com/questions/48630178/convert-the-utc-datetime-to-local-datetime-in-pandas
+# df_results.to_csv('results.csv')
+
 # %% [markdown]
 # I encountered errors when trying to add new results to my pre-existing list of results; I found that these errors were caused by datetime type mismatches between df_results and the new results. The following cell resolves these issues by converting some of the datetime columns in df_results to microsecond types.
 
@@ -200,6 +216,9 @@ df_word_stats
 # df_results['Unix_Start_Time'] = ((df_results['UTC_Start_Time'] - pd.Timestamp(
 # "1970-01-01", tz = 'utc')) // pd.Timedelta("1ns") / 1000000000)
 # df_results
+
+# %%
+
 
 # %%
 # If you ever need to drop a particular result,
@@ -486,16 +505,21 @@ def create_word_table(verse):
 
 # %%
 def run_typing_test(verse_order, results_table, 
-    word_stats_table, test_type = 'v2', autostart = False):
+    word_stats_table, setting_dict, test_type = 'v2', autostart = False):
     '''This function, which runs a typing test for an individual verse,
     makes up the core of Type Through The Bible's gameplay.
     It calculates how quickly the user types the characters
     passed to the Bible verse represented by verse_order, then saves those 
     results to the DataFrame passed to results_table. Word-level results
     are saved to word_stats_table.
-    if autostart is set to True, the function will automatically begin
+    
+    If autostart is set to True, the function will automatically begin
     the typing test, which saves the player a little bit of time (but
     makes for a more intense gameplay experience).
+
+    setting_dict is a dictionary that stores player-submitted information
+    about the player's setting (location, keyboard, layout, etc).
+    its data will get added to results_table.
     '''
 
     # Retrieving the verse to be typed:
@@ -1229,6 +1253,10 @@ incorrect_characters_as_pct_of_length,
     'Verse':verse, 
     'Verse_Order':verse_order})
     df_latest_result.index.name = 'Test_Number'
+    # Adding in variables from setting_dict to df_latest_result:
+    for variable in setting_dict:
+        df_latest_result[variable] = setting_dict[variable]
+
     df_latest_result
 
     # Adding this new row to results_table:
@@ -1454,6 +1482,133 @@ def calculate_current_day_results(df):
     return result_string
 
 # %%
+def retrieve_setting():
+    '''This function allows players to provide information about their
+    setting (location, keyboard, layout, etc). This information will
+    then get stored in the results table so that they can compare results
+    for different settings (e.g. their average WPM with red keyboard switches 
+    versus their average WPM with blue switches). Including this info is optional
+    but can allow for some interesting analyses.'''
+
+
+    print("You can now enter information about your setting; this will allow \
+you to analyze average results for different settings. This is entirely \
+optional; you can enter information for all components, \
+multiple components, or none.\n\
+Enter components within a single line. Each component should take the form \
+of a variable code followed by a hyphen and your text entry for that variable. \
+Separate variables by commas.\n \
+You can enter \
+information for the following variables:\n\
+1. Your preferred typing test version (variable code: v). If you encounter \
+difficulties with the default version, enter v1; otherwise, it's strongly \
+recommended that you don't enter anything for this component, in which case \
+the default typing test version (v2) will be used.\n\
+2. Your location (variable code: s). Can be 'home', 'subway', 'plane', etc.\n\
+3. Your keyboard (variable code: k). Consider entering either the keyboard \
+itself or the type of key switches you are using.\n\
+4. Your keyboard layout (variable code: l). Can be 'qwerty', 'dvorak', etc.)\n\
+5. Whether you've had caffeine today (variable code: c). You can enter \
+either 'yes' or 'no', \
+but you can enter other strings for this section as well.\n\
+6, 7, and 8. You can also enter up to 3 custom variables; their variable codes \
+are cu1, cu2, and cu3. You'll need to keep \
+track of these variables on your own, but you can use your previous entries \
+within the results.csv file as a reference.\n\
+Make sure not to use either commas or hyphens within your values.\n\
+Here's an example of an entry:\n\
+s-home,k-cherry red,l-dvorak,c-yes\n\
+You can now enter your entry below.\n")
+
+    while True: # Using a loop allows players to redo their input if needed.
+        try: # Helps prevent incorrectly formatted entries from crashing
+            # the game
+            # Initializing a dictionary that will store all of the user's
+            # settings:
+            # (All settings except for Version will start out as empty strings;
+            # That way, if the user doesn't update them, we'll still have
+            # something to feed into our typing test code.)
+            setting_dict = {'Test Version':'v2', 'Location':'','Keyboard':'', 
+            'Layout':'', 'Caffeine':'',
+            'Custom_1':'', 'Custom_2':'', 'Custom_3':''}
+            
+            # The game uses Version V2 of the typing test by default.
+            # However, I haven't been able to get this version
+            # to work within a Jupyter notebook, so the following lines 
+            # force notebook-based runs to use version v1 
+            # regardless of the user's input.
+            if (run_on_notebook == True):
+                setting_dict['Test Version'] = 'v1'
+                print("Because you're running this test within \
+a notebook, test version v1 must be used.") 
+
+            
+            setting_string = input() 
+            if len(setting_string) != 0: # If the player simply hit Enter,
+                # no setting string was provided, so the following code
+                # should be skipped.
+
+                # Converting this string into a list of responses:
+                setting_list = setting_string.split(',')            
+
+                # The function will now go through each of the player's entries
+                # and use them to update different values within setting_dict.
+                for setting_entry in setting_list:
+                    setting_components = setting_entry.strip(
+                    ).lower().split('-')
+                    # Converting the entries to lowercase and stripping out 
+                    # extraneous spaces will help prevent different versions
+                    # of the same value from appearing within a user's results.
+                    # print(setting_components[0], setting_components[1])
+                    setting_variable = setting_components[0] # This portion is
+                    # the variable code (e.g. 'l' for 'layout')
+                    setting_value = setting_components[1] # This portion is 
+                    # the value the user entered for that code (e.g. 'dvorak'
+                    # for 'layout').
+
+                    if (setting_variable == 'v') & (
+                    setting_value in ['1', 'v1', 1]):
+                        setting_dict['Test Version'] = 'v1'
+
+                        # Because the game expects to see only 'v1' or 'v2' 
+                        # as the value for 'Test Version', the code will
+                        # determine the value via an if statement.
+                        
+                    if setting_variable == 's':
+                        setting_dict['Location'] = str(setting_value)
+                    if setting_variable == 'k':
+                        setting_dict['Keyboard'] = str(setting_value)
+                    if setting_variable == 'l':
+                        setting_dict['Layout'] = str(setting_value)
+                    if setting_variable == 'c':
+                        setting_dict['Caffeine'] = str(setting_value)
+                    if setting_variable == 'cu1':
+                        setting_dict['Custom_1'] = str(setting_value)
+                    if setting_variable == 'cu2':
+                        setting_dict['Custom_2'] = str(setting_value)
+                    if setting_variable == 'cu3':
+                        setting_dict['Custom_3'] = str(setting_value)
+                    # If the code entered by a player doesn't match any of these
+                    # entries, it will simply be ignored.
+            
+            print("Here are your setting entries. If you need to \
+redo your entry, type 'r' and hit Enter; otherwise, just hit Enter.\n\
+(Note: All entries are converted to lowercase.)")
+            for variable in setting_dict:
+                if len(setting_dict[variable]) == 0:
+                    input_value = '(No Entry)'
+                else:
+                    input_value = setting_dict[variable]
+                print(f"{variable}: {input_value}")
+            setting_response = input()
+            if setting_response != 'r':
+                return setting_dict
+        except:
+            print("Input was not formatted correctly. Please review the \
+instructions and sample output and try again.")
+
+
+# %%
 def run_game(results_table, word_stats_table):
     '''This function runs Type Through the Bible by 
     calling various other functions. It allows users to select
@@ -1464,22 +1619,12 @@ def run_game(results_table, word_stats_table):
     # The game will now share the player's progress for the current day:
     print(calculate_current_day_results(results_table))
 
-    if run_on_notebook == True: # I haven't been able to get version
-        # v2 of the typing test to work within a Jupyter notebook, 
-        # so the following line forces notebook-based runs to use version v1.
-        typing_test_version = 'v1'
-    else: # In this case, the user gets to choose whether to to use 
-        # v1 or v2.
-        print("To switch to a simpler typing test method that doesn't \
-check your input as you type, enter v1. Otherwise, to stick with the \
-recommended version, press Enter.")
-        response = input()
-        if (response == 'v1') or (run_on_notebook == True): # Version 2 likely
-            # won't work within Jupyter notebooks, 
-            # so the version will always be kept as v1 for notebook users.
-            typing_test_version = 'v1'
-        else:
-            typing_test_version = 'v2'
+
+    setting_dict = retrieve_setting()
+    
+
+    # The typing version will be retrieved from setting_dict.
+    typing_test_version = setting_dict['Test Version']
 
     # The method for exiting a test in progress differs by typing test
     # version, so the game will now explain how the player can exit out of 
@@ -1493,7 +1638,8 @@ by hitting the ` (backtick) key.")
               
     verse_order, autostart = select_verse()
     
-    while True: # Allows the game to continue until the user decides to exit.
+    while True: # Allows the player to continue entering responses for
+        # different versions until he or she decides to exit.
         # The output of a given typing test will serve as the input for
         # the next typing test; this approach allows the player's results
         # to get updated over time.
@@ -1502,10 +1648,14 @@ by hitting the ` (backtick) key.")
         results_table=results_table, 
         word_stats_table=word_stats_table,
         test_type = typing_test_version,
-        autostart=autostart)
+        autostart=autostart, setting_dict = setting_dict)
         # The game will next share an updated progress report:
         print(calculate_current_day_results(results_table))
         
+        # Next, the script will determine which verse to present to
+        # the player next. As long as autostart isn't set to True,
+        # he/she will have the opportunity to choose the subsequent
+        # verse.
         if autostart == True:
             if verse_order == len(df_Bible): # In this case, the final verse
                 # of the Bible was just typed, so the player will be given
@@ -2095,9 +2245,6 @@ if save_image_copies_of_charts == True:
         'Analyses/top_months_by_characters.png', 
         width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_top_months_by_characters
-
-# %%
-
 
 # %%
 df_top_months_by_verses = df_results.pivot_table(
