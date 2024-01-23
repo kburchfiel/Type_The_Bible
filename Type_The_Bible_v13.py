@@ -166,8 +166,12 @@ else:
 df_results
 
 
+# %% [markdown]
+# If you need to make any corrections or revisions to your setting columns (Keyboard, Location, etc.), you can do so by modifying the code below.
+
 # %%
-df_results['Local_Start_Time']
+# df_results['Keyboard'].replace({'laptop':'2021 laptop', '2021':'2021 laptop'}, inplace = True)
+# df_results.to_csv('results.csv', index = True)
 
 # %%
 # # If you accidentally overwrote your Local_Start_Time values with something
@@ -1235,6 +1239,9 @@ was typed '{verse_response_words[i]}'.")
     # Creating a single-row DataFrame that stores the player's results:
     # +1 is added to the length of the results table in order to begin
     # test number values at 1 (rather than 0).
+
+    # 
+
     df_latest_result = pd.DataFrame(index = [
         len(results_table)+1], data = {'Unix_Start_Time':unix_start_time, 
     'Local_Start_Time':local_start_time,
@@ -1251,11 +1258,15 @@ incorrect_characters_as_pct_of_length,
     'Chapter': chapter,
     'Verse #': verse_number_within_chapter,
     'Verse':verse, 
-    'Verse_Order':verse_order})
+    'Verse_Order':verse_order,
+    'Autostart': 1 if autostart == True else 0})
+    # Regarding the ternary operator within the autostart line: See 
+    # See https://stackoverflow.com/a/394814/13097194
     df_latest_result.index.name = 'Test_Number'
     # Adding in variables from setting_dict to df_latest_result:
     for variable in setting_dict:
         df_latest_result[variable] = setting_dict[variable]
+
 
     df_latest_result
 
@@ -1497,11 +1508,12 @@ optional; you can enter information for all components, \
 multiple components, or none.\n\
 Enter components within a single line. Each component should take the form \
 of a variable code followed by a hyphen and your text entry for that variable. \
-Separate variables by commas.\n \
+Separate variables by commas.\n\
 You can enter \
 information for the following variables:\n\
 1. Your preferred typing test version (variable code: v). If you encounter \
-difficulties with the default version, enter v1; otherwise, it's strongly \
+difficulties with the default version, enter 'v1' (without the single quotes); \
+otherwise, it's strongly \
 recommended that you don't enter anything for this component, in which case \
 the default typing test version (v2) will be used.\n\
 2. Your location (variable code: s). Can be 'home', 'subway', 'plane', etc.\n\
@@ -1517,7 +1529,7 @@ track of these variables on your own, but you can use your previous entries \
 within the results.csv file as a reference.\n\
 Make sure not to use either commas or hyphens within your values.\n\
 Here's an example of an entry:\n\
-s-home,k-cherry red,l-dvorak,c-yes\n\
+'s-home,k-cherry red,l-dvorak,c-yes' (again, omit the single quotes.)\n\
 You can now enter your entry below.\n")
 
     while True: # Using a loop allows players to redo their input if needed.
@@ -3046,6 +3058,173 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 
 # %% [markdown]
 # This script used to show the highest-ever WPMs for individual words, but this code has been removed due to accuracy issues caused by computer lag.
+
+# %% [markdown]
+# # Analyzing results by setting characteristics:
+# 
+# This section will show how players' results differ based on various elements of their settings, such as their locations, keyboards, and keyboard layouts. (Players provide this setting-related information during the beginning of each game session. It's entirely optional, so if no data are available for a given characteristic, the visualization code for that data will get skipped.)
+
+# %%
+def analyze_results_by_setting_component(component):
+    '''This function compares players' WPM results for a particular setting,
+    such as their location or keyboard. This code was moved to a function
+    in order to simplify the program.
+    
+    component: The component to analyze. This must be a column within
+    df_results ('Keyboard', 'Location', etc.)'''
+    # If we don't have any data for the setting component (other than empty-string entries),
+    # we'll want to skip these analyses.
+    if df_results.query(f"{component} != ''")[component].count() > 0:
+        df_setting_comparison = df_results.query(
+        f"{component} != ''").pivot_table(index = component, 
+        values = ['WPM', 'Count'], aggfunc = 
+        {'WPM':'mean', 'Count':'sum'}).sort_values(
+        'WPM', ascending = False).reset_index() # Note the use of query()
+        # to exclude empty-string location values from the pivot table
+        df_setting_comparison.rename(columns = {'Count':'Number of Tests'}, 
+        inplace = True)
+        df_setting_comparison
+
+        fig_setting_comparison = px.bar(df_setting_comparison, x = component, 
+        y = 'WPM', color = 'Number of Tests', text_auto = '.6s', 
+        title = f'Average WPM by {component}')
+        fig_setting_comparison.update_layout(legend_title_text = 'Test Count')
+        fig_setting_comparison.write_html(
+        f'Analyses/setting_{component.lower()}_results.html')
+        if save_image_copies_of_charts == True:
+            fig_setting_comparison.write_image(
+            f'Analyses/setting_{component.lower()}_results.png', 
+            width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+        return fig_setting_comparison
+    else:
+        print(f"Comparison data is not yet available for the {component} \
+setting component, so charts that rely on it will not be created.")
+
+# %% [markdown]
+# Running analyze_results_by_setting_component for different components:
+
+# %%
+for component in ['Location', 'Keyboard', 'Layout', 'Caffeine', 'Custom_1', 'Custom_2', 'Custom_3', 'Autostart']:
+    analyze_results_by_setting_component(component)
+
+# %% [markdown]
+# Note: the following code is a modified version of the create_pivot_for_charts() function found in my [Dash School Dashboard project](https://github.com/kburchfiel/dash_school_dashboard/blob/main/dsd/app_functions_and_variables.py).
+
+# %%
+def analyze_results_by_multiple_setting_components(
+    original_data_source, y_value,comparison_values, pivot_aggfunc):
+    '''This function turns the DataFrame passed to original_data_source
+    into a pivot table that can serve as the basis for a Plotly chart. 
+    original_data_source: The source of the data that will be graphed.
+
+    y_value: The y value to use within the graph.
+
+    comparison_values: A list of values that will be used to pivot the
+    DataFrame. These values help determine the level of detail shown in the
+    final bar chart. 
+
+    pivot_aggfunc: The aggregate function ('mean', 'sum', 'count', etc.) 
+    to be passed to the pivot_table() call.'''
+
+    data_source = original_data_source.copy()
+
+    # Removing results with empty strings from data_source so that they won't
+    # get incorporated into the pivot table and chart:
+    for value in comparison_values:
+        data_source == data_source.query(f"{value} != ''").copy()
+        if data_source.query(f"{value} != ''")[value].count() == 0:
+            # In this case, we don't have any data for the selected
+            # variable, so we won't be able to create a graph. The function
+            # will thus return nothing.
+            print(f"Comparison data is not yet available for the {value} \
+setting component, so charts that rely on it will not be created.")
+            return 
+    
+    # In order to show comparisons within the final graph, we need to create
+    # a table that contains those various comparisons. This function does so
+    # using the pivot_table() function within Pandas. The resulting pivot
+    # table will have one row for each comparison combination (as long as
+    # y value data were present for that combination.)
+
+    # The comparison_values
+    # variable will be used as the index for the pivot_table() function. 
+    data_source_pivot = data_source.pivot_table(
+    index = comparison_values, values = [y_value, 'Count'], 
+    aggfunc = {y_value:pivot_aggfunc,'Count':'sum'}).reset_index()
+    data_source_pivot.rename(columns = {'Count':'Number of Tests'}, 
+    inplace = True)
+    # Next, we need to create x values that reflect the different column
+    # values in each row of the pivot table. These x values will then 
+    # get passed to the graphing function.
+    # The following lines accomplish this by creating a new 
+    # data_source_pivot column that contains strings made up of the 
+    # values of each of the columns (other than the y value column) 
+    # present in the bar chart. The chart will use these strings as 
+    # x values when creating the grouped chart. 
+
+    data_descriptor_values = comparison_values.copy()
+
+    data_descriptor = data_source_pivot[
+        data_descriptor_values[0]].copy().astype('str') # This line 
+    # initializes data_descriptor as the first item within 
+    # data_descriptor_values. copy() is needed in order to avoid 
+    # modifying this column when the group column gets chosen.
+
+    # The following for loop iterates through each column name (except
+    # for the initial column, which has already been added
+    # to data_descriptor) in order to add all of the values present in 
+    # data_descriptor_values to data_descriptor.
+    # The use of a for loop allows this code to adapt to different variable
+    # choices and different column counts.
+    for i in range(1, len(data_descriptor_values)):
+        data_descriptor += '/' + data_source_pivot[
+            data_descriptor_values[i]].astype('str') # This line adds 
+            # the value of a given column to data_descriptor.
+
+    data_source_pivot['Group'] = data_descriptor # This group column will be 
+    # used as the x value of the chart.
+
+    data_source_pivot.sort_values('WPM', ascending = False, inplace = True)
+
+    # Creating a title that includes each comparison:
+    chart_title = 'Average WPM by ' + '/'.join(comparison_values)
+
+    fig_results = px.bar(data_source_pivot, x = 'Group', 
+    y = y_value, color = 'Number of Tests', text_auto='.6s',
+    title = chart_title)
+
+    fig_results.update_layout(legend_title_text = 'Test Count')
+    
+    # Creating a filename that incorporates lowercase versions of each 
+    # comparison option:
+    chart_filename = 'setting_'+'_'.join(
+    [value.lower() for value in comparison_values])+'_results'
+    fig_results.write_html(chart_filename+'.html')
+    if save_image_copies_of_charts == True:
+        fig_results.write_image(
+        chart_filename+'.png', 
+        width = 1920, height = 1080, engine = 'kaleido', scale = 2)
+
+    return fig_results
+
+# %% [markdown]
+# Calling this function for selected comparison groups:
+
+# %%
+analyze_results_by_multiple_setting_components(original_data_source = df_results,
+y_value = 'WPM', comparison_values = ['Location', 'Keyboard'], pivot_aggfunc = 'mean')
+
+# %%
+analyze_results_by_multiple_setting_components(original_data_source = df_results,
+y_value = 'WPM', comparison_values = ['Location', 'Autostart'], pivot_aggfunc = 'mean')
+
+# %%
+analyze_results_by_multiple_setting_components(original_data_source = df_results,
+y_value = 'WPM', comparison_values = ['Keyboard', 'Autostart'], pivot_aggfunc = 'mean')
+
+# %%
+analyze_results_by_multiple_setting_components(original_data_source = df_results,
+y_value = 'WPM', comparison_values = ['Location', 'Keyboard', 'Autostart'], pivot_aggfunc = 'mean')
 
 # %%
 analysis_end_time = time.time()
