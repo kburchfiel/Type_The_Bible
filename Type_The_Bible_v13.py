@@ -3197,7 +3197,7 @@ setting component, so charts that rely on it will not be created.")
     
     # Creating a filename that incorporates lowercase versions of each 
     # comparison option:
-    chart_filename = 'setting_'+'_'.join(
+    chart_filename = 'Analyses/setting_'+'_'.join(
     [value.lower() for value in comparison_values])+'_results'
     fig_results.write_html(chart_filename+'.html')
     if save_image_copies_of_charts == True:
