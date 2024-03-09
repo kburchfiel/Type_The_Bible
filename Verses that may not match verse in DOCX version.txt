@@ -6,3 +6,4 @@ NUM 25:14 and NUM 25:15 (fathers' instead of father's?)
 5068 (Deuteronomy)--space after Em dash?
 5587 (Deutoronomy)--commandments?
 6294 (Joshua 17:18)--'it's' when it should be 'its'
+7698 (1SA 18:21)--missing quotes?

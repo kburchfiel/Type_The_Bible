@@ -1359,7 +1359,7 @@ Close out of any open autosave files so that they can be updated later on.")
 
 
 # %%
-def select_subsequent_verse(previous_verse_order):
+def select_subsequent_verse(previous_verse_order, setting_dict, setting_string):
     '''This function allows the player to specify which verse to
     type next, or, alternatively, to exit the game.
     This function will either return a positive number (representing a verse)
@@ -1367,8 +1367,10 @@ def select_subsequent_verse(previous_verse_order):
     were made negative so that they wouldn't be mistaken for verse numbers.
     
     This function is quite similar to select_verse, but also incorporates
-    but makes use of the verse_order value for the most recent verse
-    typed (previous_verse_order).
+    the verse_order value for the most recent verse typed 
+    (previous_verse_order) along with information about the player's current
+    setting. Passing this setting information to select_subsequent_verse()
+    will make it easier for the function to modify the setting.
     '''
 
     print("Press 0 to retry the verse you just typed; \
@@ -1377,7 +1379,8 @@ def select_subsequent_verse(previous_verse_order):
 3 to select a different verse; \
 -1 to save your results and exit; \
 -2 to save your results without running the analysis \
-portion of the script; and -4 to enable autostart.") 
+portion of the script; -4 to enable autostart; \
+and -5 to change information about your setting.") 
 # The analysis portion can take a decent amount of
 # time to run, which is why an option to save without running these analyses
 # was added in. These analyses can then get updated during a later session.
@@ -1392,14 +1395,14 @@ portion of the script; and -4 to enable autostart.")
                 print("Please enter a number.")      
                 continue
             if response == 0:
-                return previous_verse_order
+                return previous_verse_order, setting_dict, setting_string
             elif response == 1:
                 if previous_verse_order == len(df_Bible):
                     print("You just typed the last verse in the Bible, so \
 there's no next verse to type! Please enter an option other than 1.\n")
                     continue
                 else:
-                    return previous_verse_order + 1
+                    return previous_verse_order + 1, setting_dict, setting_string
             elif response == 2:
                 # In this case, we'll retrieve a list of verses that haven't
                 # yet been typed; filter that list to include only verses
@@ -1419,7 +1422,7 @@ been typed.")
                 # previous_verse_order:
                 next_untyped_verses = [verse for verse in verses_not_yet_typed 
                 if verse > previous_verse_order]
-                return next_untyped_verses[0]
+                return next_untyped_verses[0], setting_dict, setting_string
             
             elif response == -3:
                 if len(verses_not_yet_typed) == 0:
@@ -1430,7 +1433,7 @@ instead.")
                 print(f"{len(verses_not_yet_typed)} verses have not yet \
 been typed.")
                 verses_not_yet_typed.sort()
-                return verses_not_yet_typed[0]
+                return verses_not_yet_typed[0], setting_dict, setting_string
 
             elif response == 3: # select_verse() returns two items, but
                 # select_subsequent_verse() only returns one, so we'll
@@ -1439,13 +1442,22 @@ been typed.")
                 verse_order, autostart = select_verse()
                 if autostart == True: # In this case, we'll return
                     # the autostart enable code (-4).
-                    return -4
+                    return -4, setting_dict, setting_string
                 else: # If autostart is False, we'll just return
                     # the verse order chosen by select_verse().
-                    return verse_order
-                    
+                    return verse_order, setting_dict, setting_string
+            elif response == -5: # This response will allow the player
+                # to modify his/her setting, e.g. due to a keyboard
+                # or location change.
+                setting_dict, setting_string = retrieve_setting(setting_string)
+                # Now that the setting dictionary will be updated, the player
+                # will be presented once again with various options for
+                # his/her subsequent verse.
+                print("Now enter the number corresponding to your choice for \
+your subsequent verse.")
+                continue              
             elif response in [-1, -2, -4]:
-                return response
+                return response, setting_dict, setting_string
             else: # A number other than one of the above options was passed.
                 print("Please enter a whole number from -3 to 3 (inclusive).\n")  
 
@@ -1493,13 +1505,15 @@ def calculate_current_day_results(df):
     return result_string
 
 # %%
-def retrieve_setting():
+def retrieve_setting(setting_string = ''):
     '''This function allows players to provide information about their
     setting (location, keyboard, layout, etc). This information will
     then get stored in the results table so that they can compare results
     for different settings (e.g. their average WPM with red keyboard switches 
     versus their average WPM with blue switches). Including this info is optional
-    but can allow for some interesting analyses.'''
+    but can allow for some interesting analyses.
+
+    setting_string: The most recent setting string entered by the player.'''
 
 
     print("You can now enter information about your setting; this will allow \
@@ -1531,6 +1545,10 @@ Make sure not to use either commas or hyphens within your values.\n\
 Here's an example of an entry:\n\
 's-home,k-cherry red,l-dvorak,c-yes' (again, omit the single quotes.)\n\
 You can now enter your entry below.\n")
+    if setting_string != '':
+        print("Your current setting is:", setting_string) # Providing 
+        # this information will make it easier for the player to update
+        # his/her settings if needed.
 
     while True: # Using a loop allows players to redo their input if needed.
         try: # Helps prevent incorrectly formatted entries from crashing
@@ -1614,7 +1632,9 @@ redo your entry, type 'r' and hit Enter; otherwise, just hit Enter.\n\
                 print(f"{variable}: {input_value}")
             setting_response = input()
             if setting_response != 'r':
-                return setting_dict
+                return setting_dict, setting_string
+            else:
+                print("You may now re-enter your setting information.")
         except:
             print("Input was not formatted correctly. Please review the \
 instructions and sample output and try again.")
@@ -1632,7 +1652,7 @@ def run_game(results_table, word_stats_table):
     print(calculate_current_day_results(results_table))
 
 
-    setting_dict = retrieve_setting()
+    setting_dict, setting_string = retrieve_setting()
     
 
     # The typing version will be retrieved from setting_dict.
@@ -1664,7 +1684,7 @@ by hitting the ` (backtick) key.")
         # The game will next share an updated progress report:
         print(calculate_current_day_results(results_table))
         
-        # Next, the script will determine which verse to present to
+        # The script will now determine which verse to present to
         # the player next. As long as autostart isn't set to True,
         # he/she will have the opportunity to choose the subsequent
         # verse.
@@ -1680,8 +1700,12 @@ by hitting the ` (backtick) key.")
             # to select a new verse (or to save and quit).
             previous_verse_order = verse_order # Saving verse_order here 
             # allows it to get retrieved for use in the autostart mode.
-            verse_order = select_subsequent_verse(
-                previous_verse_order=previous_verse_order)
+            verse_order, setting_dict, setting_string = select_subsequent_verse(
+                previous_verse_order=previous_verse_order, 
+                setting_dict = setting_dict, setting_string = setting_string)
+            # The typing version will now be re-retrieved from setting_dict
+            # just in case it was updated within select_subsequent_verse().
+            typing_test_version = setting_dict['Test Version']
             if verse_order == -1: # In this case, the game will quit and the 
                 # user's new test results will be saved to results_table.
                 run_analyses = 1
