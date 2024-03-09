@@ -1,0 +1,23 @@
+MX Red: 15-24 (136.721)
+MX2A Brown: 25-34 (134.526)
+MX2A Black: 35-44 (131.138)
+MX2A Black: 45-54 (133.015)
+MX2A Brown: 55-64 (149.527)
+MX Red: 65-74 (140.299)
+MX Red: 75-84 (135.452)
+MX2A Brown: 85-94 (130.288)
+MX2A Black: 95-104 (144.098)
+MX2A Black: 105-114 (139.323)
+MX2A Brown: 115-124 (137.723)
+MX Red: 125-134 (143.235)
+
+
+
+Gospel of John starts on: 30326
+
+
+s-home,k-cherry red,l-dvorak,c-yes
+s-home,k-cherry mx2a brown,l-dvorak,c-yes
+s-home,k-cherry mx2a black,l-dvorak,c-yes
+
+Check 30502

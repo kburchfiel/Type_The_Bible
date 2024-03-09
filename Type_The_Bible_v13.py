@@ -5,7 +5,7 @@
 # 
 # *Code is released under the MIT license; Bible verses are from the Web English Bible (Catholic Edition)* and are in the public domain.*
 # 
-# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition Genesis files. In addition, to make it easier to type verses, I also replaced the em dashes in the original file with double hyphens and replaced curly single and double quotes with straight ones.
+# \* Genesis was not found within the original WEB Catholic Edition folder, so I copied in files from another Web English Bible translation instead. I imagine, but am not certain, that these files are the same as the actual Catholic Edition's Genesis files. In addition, to make it easier to type verses, I also replaced the em dashes in the original file with double hyphens and replaced curly single and double quotes with straight ones. Finally, I removed the character between the final ' and " in verse 30502 (John 5:11) because it didn't appear to be a regular space (and a space wasn't needed here anyway).
 
 # %% [markdown]
 # # Instructions for getting started:
@@ -1143,6 +1143,15 @@ pressing `; maximizing the terminal; and then restarting this test.")
                     # word stats table:
                     word_stats_for_latest_test = pd.DataFrame(word_stats_list)
                     # print(word_stats_for_latest_test)
+                    # Determining the percentage of words typed correctly:
+                    pct_of_words_typed_correctly = sum(word_stats_for_latest_test[
+                        'typed_word_without_mistakes'])/len(
+                        word_stats_for_latest_test) * 100
+                    # print(sum(word_stats_for_latest_test[
+                    # 'typed_word_without_mistakes']), 
+                    # len(word_stats_for_latest_test), 
+                    # pct_of_words_typed_correctly)
+                    # print(word_stats_for_latest_test)
                     # print(f"Code execution stats: Median: {np.median(
                     # code_execution_time_list)}, Mean: {np.mean(
                     # code_execution_time_list)}, Max: {max(
@@ -1159,13 +1168,14 @@ pressing `; maximizing the terminal; and then restarting this test.")
             # a character was mistyped until the very end, which can get
             # frustrating. Version V2 of the test addresses this issue.
             
-            # The following three variables can't be calculated using v1
+            # The following variables can't be calculated using v1
             # of the test (since the player's response is only evaluated
             # after all words have been submitted), so they will instead
             # be initialized as NaN values.
             no_mistakes = np.NaN
             backspaces_as_pct_of_length = np.NaN
             incorrect_characters_as_pct_of_length = np.NaN
+            pct_of_words_typed_correctly = np.NaN
             
             # Storing various start time values:
             unix_start_time = time.time()
@@ -1259,7 +1269,8 @@ incorrect_characters_as_pct_of_length,
     'Verse #': verse_number_within_chapter,
     'Verse':verse, 
     'Verse_Order':verse_order,
-    'Autostart': 1 if autostart == True else 0})
+    'Autostart': 1 if autostart == True else 0,
+    '% of Words Typed Correctly':pct_of_words_typed_correctly})
     # Regarding the ternary operator within the autostart line: See 
     # See https://stackoverflow.com/a/394814/13097194
     df_latest_result.index.name = 'Test_Number'
@@ -1320,6 +1331,12 @@ incorrect_characters_as_pct_of_length,
     print(f"Your CPS and WPM were {round(cps, 3)} and {round(wpm, 3)}, \
 respectively. Your WPM percentile was {latest_percentile} \
 ({latest_rank} out of {number_of_tests} tests).{last_10_report}")  
+
+    if test_type == 'v2':
+        print(f"{round(pct_of_words_typed_correctly,2)}% of words \
+were typed without a mistake. Your incorrect keypress count was \
+{round(incorrect_characters_as_pct_of_length,2)}% of the verse's length.")
+
 
     # Updating df_Bible to store the player's results: (This will allow the
     # player to track how much of the Bible he/she has typed so far)

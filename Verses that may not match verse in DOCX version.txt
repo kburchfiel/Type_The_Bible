@@ -7,3 +7,4 @@ NUM 25:14 and NUM 25:15 (fathers' instead of father's?)
 5587 (Deutoronomy)--commandments?
 6294 (Joshua 17:18)--'it's' when it should be 'its'
 7698 (1SA 18:21)--missing quotes?
+30502: Removed character between final ' and " because it didn't appear to be a regular space (and a space wasn't needed here anyway)
