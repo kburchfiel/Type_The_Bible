@@ -685,6 +685,22 @@ pressing `; maximizing the terminal; and then restarting this test.")
             # potentially clear out an entire word.
             word_stats_list = [] # Will store WPM stats at the word level.
             # code_execution_time_list = []
+            keypress_count = 0 # This variable will keep track of the total
+            # number of keypresses typed by the user to complete the verse.
+            # I consider this to be the best indicator of accuracy (or, 
+            # at least, efficiency), since it
+            # will include redundant keypresses that wouldn't appear in
+            # either incorrect_character_count or backspace_count.
+            # (As an example: say the user was trying to type 'thing'
+            # but ended up typing 'thnig', followed by Ctrl + Backspace
+            # (to clear out the whole word) and then 'thing'. The second
+            # 'th' wouldn't be included in incorrect_character_count, since
+            # those characters were correctly typed, but they would increase
+            # keypress_count beyond the length of the verse, thus indicating
+            # that the user typed the word less efficiently than he/she
+            # could have.
+
+            
 
             # The following two lists will keep track of first- and last-letter
             # indices that have already been reached by the player. These lists
@@ -769,6 +785,8 @@ pressing `; maximizing the terminal; and then restarting this test.")
                 # a bytestring.) However, I found that getch() returned strings 
                 # within Linux. Therefore, the following if statement was added 
                 # in to convert these strings to bytestrings.
+                keypress_count += 1 # Will increment with every keypress,
+                # including backspaces. 
                 if type(character) == str:
                     character = character.encode()
                 character_press_time = time.perf_counter_ns() # This value
@@ -1137,7 +1155,16 @@ pressing `; maximizing the terminal; and then restarting this test.")
                         100 * incorrect_character_count / len(verse))
                     # print("Backspace count and incorrect character count:",
                     # backspace_count, incorrect_character_count)
-                
+
+                    # Calculating the number of keypresses typed as a percentage
+                    # of the verse's length: (this is a helpful measure of 
+                    # both efficiency and accuracy)
+                    efficiency_percentage = 100 * keypress_count / len(verse)
+#                     print(f"{keypress_count} keypresses were typed in order \
+# to write a {len(verse)}-character verse, resulting in an \
+# efficiency percentage of {efficiency_percentage}.")
+
+
                     # converting word_stats_list into a DataFrame
                     # so that it can be added to a pre-existing
                     # word stats table:
@@ -1176,7 +1203,8 @@ pressing `; maximizing the terminal; and then restarting this test.")
             backspaces_as_pct_of_length = np.NaN
             incorrect_characters_as_pct_of_length = np.NaN
             pct_of_words_typed_correctly = np.NaN
-            
+            efficiency_percentage = np.NaN
+
             # Storing various start time values:
             unix_start_time = time.time()
             local_start_time = pd.Timestamp.now()
@@ -1270,7 +1298,8 @@ incorrect_characters_as_pct_of_length,
     'Verse':verse, 
     'Verse_Order':verse_order,
     'Autostart': 1 if autostart == True else 0,
-    '% of Words Typed Correctly':pct_of_words_typed_correctly})
+    '% of Words Typed Correctly':pct_of_words_typed_correctly,
+    'Efficiency %':efficiency_percentage})
     # Regarding the ternary operator within the autostart line: See 
     # See https://stackoverflow.com/a/394814/13097194
     df_latest_result.index.name = 'Test_Number'
@@ -1334,8 +1363,9 @@ respectively. Your WPM percentile was {latest_percentile} \
 
     if test_type == 'v2':
         print(f"{round(pct_of_words_typed_correctly,2)}% of words \
-were typed without a mistake. Your incorrect keypress count was \
-{round(incorrect_characters_as_pct_of_length,2)}% of the verse's length.")
+were typed without a mistake. Your incorrect keypress and total keypress \
+count were {round(incorrect_characters_as_pct_of_length,2)}% and \
+{round(efficiency_percentage, 2)}% of the verse's length, respectively.")
 
 
     # Updating df_Bible to store the player's results: (This will allow the
@@ -1824,6 +1854,15 @@ df_results['Incorrect Character % Last 100 Avg'] = df_results[
 'Incorrect Characters as % of Verse Length'].rolling(100).mean()
 df_results['Incorrect Character % Last 1000 Avg'] = df_results[
 'Incorrect Characters as % of Verse Length'].rolling(1000).mean()
+
+df_results['Efficiency % Last 10 Avg'] = df_results[
+'Efficiency %'].rolling(10).mean()
+df_results['Efficiency % Last 100 Avg'] = df_results[
+'Efficiency %'].rolling(100).mean()
+df_results['Efficiency % Last 1000 Avg'] = df_results[
+'Efficiency %'].rolling(1000).mean()
+
+
 
 
 df_results['Local_Start_Year'] = df_results['Local_Start_Time'].dt.year
@@ -2737,6 +2776,14 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
     fig_wpm_by_mistake_free_status
 
 # %% [markdown]
+# ## Accuracy measures:
+# 
+# Note: I am now using the Efficiency Percentage measure as an indicator of accuracy, as it captures more incorrect/redundant keystrokes than do the other accuracy measures logged by the gameplay code. Lower efficiency percentage values indicate more efficient, accurate tests. The lowest-possible (e.g. best) percentage with a regular keyboard is 100%; this value indicates that the player typed the verse perfectly.
+
+# %%
+
+
+# %% [markdown]
 # ### Evaluating the relationship between incorrect keypresses as a % of verse length and WPM:
 
 # %%
@@ -2745,73 +2792,73 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 # .exe version of the program, so I'm excluding the "trendline = 'ols'" 
 # component for now. Hopefully I can find a way to get that code to work
 # in the future.
-# fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
-# x = 'Incorrect Characters as % of Verse Length', y = 'WPM', trendline = 'ols')
+# fig_efficiency_wpm_scatter = px.scatter(df_results, 
+# x = 'Total Keypresses as % of Verse Length', y = 'WPM', trendline = 'ols')
 # # Note that you can hover over the best fit line to see the 
 # regression results.
 
-fig_incorrect_characters_wpm_scatter = px.scatter(df_results, 
-x = 'Incorrect Characters as % of Verse Length', y = 'WPM', 
-title = 'Comparison Between Incorrect Character % and WPM')
+fig_efficiency_wpm_scatter = px.scatter(df_results, 
+x = 'Efficiency %', y = 'WPM', 
+title = 'Comparison Between Efficiency and WPM')
 
 
-fig_incorrect_characters_wpm_scatter.write_html(
-'Analyses/incorrect_characters_wpm_scatter.html')
+fig_efficiency_wpm_scatter.write_html(
+'Analyses/efficiency_wpm_scatter.html')
 if save_image_copies_of_charts == True:
-    fig_incorrect_characters_wpm_scatter.write_image(
-    'Analyses/incorrect_characters_wpm_scatter.png', 
+    fig_efficiency_wpm_scatter.write_image(
+    'Analyses/efficiency_wpm_scatter.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_incorrect_characters_wpm_scatter
+fig_efficiency_wpm_scatter
 
 # %%
 fig_accuracy_wpm_histogram = px.histogram(df_results, 
-x = 'Incorrect Characters as % of Verse Length', y = 'WPM', 
+x = 'Efficiency %', y = 'WPM', 
 histfunc = 'avg', nbins = 20, text_auto = '.6s',
-title = 'Average WPM for Different Character Percentage Bins')
+title = 'Average WPM for Different Efficiency Bins')
 fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1, 
 yaxis_title = 'Average WPM')
 fig_accuracy_wpm_histogram.write_html(
-'Analyses/incorrect_characters_wpm_histogram.html')
+'Analyses/efficiency_wpm_histogram.html')
 if save_image_copies_of_charts == True:
     fig_accuracy_wpm_histogram.write_image(
-    'Analyses/incorrect_characters_wpm_histogram.png', 
+    'Analyses/efficiency_wpm_histogram.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_accuracy_wpm_histogram
 
 
 # %%
-fig_accuracy_count_histogram = px.histogram(df_results, 
-x = 'Incorrect Characters as % of Verse Length', nbins = 20, text_auto = True,
-title = 'Incorrect Character Percentage Histogram')
-fig_accuracy_count_histogram.update_layout(
+fig_efficiency_count_histogram = px.histogram(df_results, 
+x = 'Efficiency %', nbins = 20, text_auto = True,
+title = 'Efficiency Histogram')
+fig_efficiency_count_histogram.update_layout(
 bargroupgap = 0.1, yaxis_title = '# of Tests')
-fig_accuracy_count_histogram.write_html(
-'Analyses/incorrect_character_pct_histogram.html')
+fig_efficiency_count_histogram.write_html(
+'Analyses/efficiency_pct_histogram.html')
 if save_image_copies_of_charts == True:
-    fig_accuracy_count_histogram.write_image(
-    'Analyses/incorrect_character_pct_histogram.png', 
+    fig_efficiency_count_histogram.write_image(
+    'Analyses/efficiency_pct_histogram.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_accuracy_count_histogram
+fig_efficiency_count_histogram
 
 # %% [markdown]
 # ### Visualizing trends in accuracy over time:
 
 # %%
-fig_incorrect_characters_by_test_number = px.line(
+fig_efficiency_by_test_number = px.line(
 df_results, x = df_results.index, 
-y = ['Incorrect Characters as % of Verse Length',
-'Incorrect Character % Last 10 Avg',
-'Incorrect Character % Last 100 Avg',
-'Incorrect Character % Last 1000 Avg'],
-title = 'Incorrect Characters as % of Verse Length by Test Number')
-fig_incorrect_characters_by_test_number.update_layout(yaxis_title='Percentage')
-fig_incorrect_characters_by_test_number.write_html(
-'Analyses/incorrect_character_pct_over_time.html')
+y = ['Efficiency %',
+'Efficiency % Last 10 Avg',
+'Efficiency % Last 100 Avg',
+'Efficiency % Last 1000 Avg'],
+title = 'Total Keypresses as % of Verse Length (Efficiency %) by Test Number')
+fig_efficiency_by_test_number.update_layout(yaxis_title='Percentage')
+fig_efficiency_by_test_number.write_html(
+'Analyses/efficiency_pct_over_time.html')
 if save_image_copies_of_charts == True:
-     fig_incorrect_characters_by_test_number.write_image(
-     'Analyses/incorrect_character_pct_over_time.png', 
+     fig_efficiency_by_test_number.write_image(
+     'Analyses/efficiency_pct_over_time.png', 
      width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_incorrect_characters_by_test_number
+fig_efficiency_by_test_number
 
 # %% [markdown]
 # ### Average WPM by day:
@@ -3106,54 +3153,70 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 # This section will show how players' results differ based on various elements of their settings, such as their locations, keyboards, and keyboard layouts. (Players provide this setting-related information during the beginning of each game session. It's entirely optional, so if no data are available for a given characteristic, the visualization code for that data will get skipped.)
 
 # %%
-def analyze_results_by_setting_component(component):
-    '''This function compares players' WPM results for a particular setting,
-    such as their location or keyboard. This code was moved to a function
-    in order to simplify the program.
+def analyze_results_by_setting_component(component, metric):
+    '''This function compares players' results for a particular metric (e.g.
+    WPM or Efficiency %) by a particular element of their setting, such as
+    their location or keyboard. This code was moved to a function in order to 
+    simplify the program.
     
     component: The component to analyze. This must be a column within
-    df_results ('Keyboard', 'Location', etc.)'''
-    # If we don't have any data for the setting component (other than empty-string entries),
-    # we'll want to skip these analyses.
-    if df_results.query(f"{component} != ''")[component].count() > 0:
-        df_setting_comparison = df_results.query(
-        f"{component} != ''").pivot_table(index = component, 
-        values = ['WPM', 'Count'], aggfunc = 
-        {'WPM':'mean', 'Count':'sum'}).sort_values(
-        'WPM', ascending = False).reset_index() # Note the use of query()
+    df_results ('Keyboard', 'Location', etc.)
+    metric: The outcome variable to analyze, such as 'WPM' or 'Efficiency %'.
+    It too must be a column within df_results.'''
+
+    # Filtering the DataFrame to include only rows with valid results
+    # for the chosen metric-component pair:
+    df_component_metric_results = df_results.query(
+    f"`{component}` == `{component}` & `{metric}` == `{metric}`").copy()
+    # The backticks were added in so that field names with spaces
+    # (such as 'Efficiency %') could also be made compatible with 
+    # query(). 
+    # NaN won't equal NaN, so this query() statement will filter out
+    # results with NaN values for either the component or the metric.
+    # (This ingenious means of filtering NaN values comes from StackOverflow
+    # user DSM: https://stackoverflow.com/a/26535881/13097194)
+    # If we don't have any data on the selected metric for the chosen 
+    # component, we'll want to skip these analyses.
+    if len(df_component_metric_results) > 0:
+        df_setting_comparison = df_component_metric_results.pivot_table(
+        index = component, 
+        values = [metric, 'Count'], aggfunc = 
+        {metric:'mean', 'Count':'sum'}).sort_values(
+        metric, ascending = False).reset_index() # Note the use of query()
         # to exclude empty-string location values from the pivot table
         df_setting_comparison.rename(columns = {'Count':'Number of Tests'}, 
         inplace = True)
         df_setting_comparison
 
         fig_setting_comparison = px.bar(df_setting_comparison, x = component, 
-        y = 'WPM', color = 'Number of Tests', text_auto = '.6s', 
-        title = f'Average WPM by {component}')
+        y = metric, color = 'Number of Tests', text_auto = '.6s', 
+        title = f'Average {metric} by {component}')
         fig_setting_comparison.update_layout(legend_title_text = 'Test Count')
         fig_setting_comparison.write_html(
-        f'Analyses/setting_{component.lower()}_results.html')
+        f'Analyses/{metric}_by_{component.lower()}.html')
         if save_image_copies_of_charts == True:
             fig_setting_comparison.write_image(
-            f'Analyses/setting_{component.lower()}_results.png', 
+            f'Analyses/{metric}_by_{component.lower()}.png', 
             width = 1920, height = 1080, engine = 'kaleido', scale = 2)
         return fig_setting_comparison
     else:
-        print(f"Comparison data is not yet available for the {component} \
-setting component, so charts that rely on it will not be created.")
+        print(f"Data on {metric} by {component} \
+is not yet avialable, so charts that rely on it will not be created.")
 
 # %% [markdown]
 # Running analyze_results_by_setting_component for different components:
 
 # %%
 for component in ['Location', 'Keyboard', 'Layout', 'Caffeine', 'Custom_1', 'Custom_2', 'Custom_3', 'Autostart']:
-    analyze_results_by_setting_component(component)
+    analyze_results_by_setting_component(component, 'WPM')
+    analyze_results_by_setting_component(component, 'Efficiency %')
 
 # %% [markdown]
 # Note: the following code is a modified version of the create_pivot_for_charts() function found in my [Dash School Dashboard project](https://github.com/kburchfiel/dash_school_dashboard/blob/main/dsd/app_functions_and_variables.py).
 
 # %%
 def analyze_results_by_multiple_setting_components(
-    original_data_source, y_value,comparison_values, pivot_aggfunc):
+    original_data_source, y_value, comparison_values, pivot_aggfunc):
     '''This function turns the DataFrame passed to original_data_source
     into a pivot table that can serve as the basis for a Plotly chart. 
     original_data_source: The source of the data that will be graphed.
@@ -3169,11 +3232,13 @@ def analyze_results_by_multiple_setting_components(
 
     data_source = original_data_source.copy()
 
-    # Removing results with empty strings from data_source so that they won't
-    # get incorporated into the pivot table and chart:
+    # Removing results with NaN values for a given comparison value
+    # so that they won't get incorporated into the pivot table and chart:
     for value in comparison_values:
-        data_source == data_source.query(f"{value} != ''").copy()
-        if data_source.query(f"{value} != ''")[value].count() == 0:
+        data_source.query(f"`{value}` == `{value}`", inplace = True)
+    # Also removing results with missing y_value data:
+        data_source.query(f"`{y_value}` == `{y_value}`", inplace = True)
+        if len(data_source) == 0:
             # In this case, we don't have any data for the selected
             # variable, so we won't be able to create a graph. The function
             # will thus return nothing.
@@ -3225,10 +3290,10 @@ setting component, so charts that rely on it will not be created.")
     data_source_pivot['Group'] = data_descriptor # This group column will be 
     # used as the x value of the chart.
 
-    data_source_pivot.sort_values('WPM', ascending = False, inplace = True)
+    data_source_pivot.sort_values(y_value, ascending = False, inplace = True)
 
     # Creating a title that includes each comparison:
-    chart_title = 'Average WPM by ' + '/'.join(comparison_values)
+    chart_title = f'Average {y_value} by ' + '/'.join(comparison_values)
 
     fig_results = px.bar(data_source_pivot, x = 'Group', 
     y = y_value, color = 'Number of Tests', text_auto='.6s',
@@ -3238,8 +3303,8 @@ setting component, so charts that rely on it will not be created.")
     
     # Creating a filename that incorporates lowercase versions of each 
     # comparison option:
-    chart_filename = 'Analyses/setting_'+'_'.join(
-    [value.lower() for value in comparison_values])+'_results'
+    chart_filename = f'Analyses/{y_value}_by_'+'_'.join(
+    [value.lower() for value in comparison_values])
     fig_results.write_html(chart_filename+'.html')
     if save_image_copies_of_charts == True:
         fig_results.write_image(
@@ -3249,23 +3314,16 @@ setting component, so charts that rely on it will not be created.")
     return fig_results
 
 # %% [markdown]
-# Calling this function for selected comparison groups:
+# Calling this function for both WPM and Efficiency % metrics for selected comparison groups:
 
 # %%
-analyze_results_by_multiple_setting_components(original_data_source = df_results,
-y_value = 'WPM', comparison_values = ['Location', 'Keyboard'], pivot_aggfunc = 'mean')
-
-# %%
-analyze_results_by_multiple_setting_components(original_data_source = df_results,
-y_value = 'WPM', comparison_values = ['Location', 'Autostart'], pivot_aggfunc = 'mean')
-
-# %%
-analyze_results_by_multiple_setting_components(original_data_source = df_results,
-y_value = 'WPM', comparison_values = ['Keyboard', 'Autostart'], pivot_aggfunc = 'mean')
-
-# %%
-analyze_results_by_multiple_setting_components(original_data_source = df_results,
-y_value = 'WPM', comparison_values = ['Location', 'Keyboard', 'Autostart'], pivot_aggfunc = 'mean')
+for comparison_value_set in [['Location', 'Keyboard'], 
+    ['Location', 'Autostart'],
+    ['Keyboard', 'Autostart'],
+    ['Location', 'Keyboard', 'Autostart']]:
+    for y_value in ['WPM', 'Efficiency %']:
+        analyze_results_by_multiple_setting_components(original_data_source = df_results,
+        y_value = y_value, comparison_values = comparison_value_set, pivot_aggfunc = 'mean')
 
 # %%
 analysis_end_time = time.time()
