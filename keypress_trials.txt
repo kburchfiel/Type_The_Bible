@@ -19,5 +19,3 @@ Gospel of John starts on: 30326
 s-home,k-cherry red,l-dvorak,c-yes
 s-home,k-cherry mx2a brown,l-dvorak,c-yes
 s-home,k-cherry mx2a black,l-dvorak,c-yes
-
-Check 30502

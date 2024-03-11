@@ -166,6 +166,14 @@ else:
 df_results
 
 
+# %%
+# Removing results (e.g. due to a glitch in the code that has since been resolved)
+# df_results.drop(9466, inplace = True)
+
+# %%
+# # Removing unnecessary columns (e.g. due to revisions to the game's code):
+# df_results.drop([column for column in df_results if 'efficiency' in column.lower()], axis = 1, inplace = True)
+
 # %% [markdown]
 # If you need to make any corrections or revisions to your setting columns (Keyboard, Location, etc.), you can do so by modifying the code below.
 
@@ -688,7 +696,7 @@ pressing `; maximizing the terminal; and then restarting this test.")
             keypress_count = 0 # This variable will keep track of the total
             # number of keypresses typed by the user to complete the verse.
             # I consider this to be the best indicator of accuracy (or, 
-            # at least, efficiency), since it
+            # at least, extra_keystrokes), since it
             # will include redundant keypresses that wouldn't appear in
             # either incorrect_character_count or backspace_count.
             # (As an example: say the user was trying to type 'thing'
@@ -1156,13 +1164,14 @@ pressing `; maximizing the terminal; and then restarting this test.")
                     # print("Backspace count and incorrect character count:",
                     # backspace_count, incorrect_character_count)
 
-                    # Calculating the number of keypresses typed as a percentage
-                    # of the verse's length: (this is a helpful measure of 
-                    # both efficiency and accuracy)
-                    efficiency_percentage = 100 * keypress_count / len(verse)
+                    # Calculating the number of extra keypresses typed as a 
+                    # percentage of the verse's length: (this is a helpful 
+                    # measure of accuracy)
+                    extra_keystrokes_percentage = 100 * (
+                    (keypress_count - len(verse)) / len(verse))
 #                     print(f"{keypress_count} keypresses were typed in order \
 # to write a {len(verse)}-character verse, resulting in an \
-# efficiency percentage of {efficiency_percentage}.")
+# extra_keystrokes percentage of {extra_keystrokes_percentage}.")
 
 
                     # converting word_stats_list into a DataFrame
@@ -1203,7 +1212,7 @@ pressing `; maximizing the terminal; and then restarting this test.")
             backspaces_as_pct_of_length = np.NaN
             incorrect_characters_as_pct_of_length = np.NaN
             pct_of_words_typed_correctly = np.NaN
-            efficiency_percentage = np.NaN
+            extra_keystrokes_percentage = np.NaN
 
             # Storing various start time values:
             unix_start_time = time.time()
@@ -1299,7 +1308,7 @@ incorrect_characters_as_pct_of_length,
     'Verse_Order':verse_order,
     'Autostart': 1 if autostart == True else 0,
     '% of Words Typed Correctly':pct_of_words_typed_correctly,
-    'Efficiency %':efficiency_percentage})
+    'Extra Keystrokes %':extra_keystrokes_percentage})
     # Regarding the ternary operator within the autostart line: See 
     # See https://stackoverflow.com/a/394814/13097194
     df_latest_result.index.name = 'Test_Number'
@@ -1363,9 +1372,9 @@ respectively. Your WPM percentile was {latest_percentile} \
 
     if test_type == 'v2':
         print(f"{round(pct_of_words_typed_correctly,2)}% of words \
-were typed without a mistake. Your incorrect keypress and total keypress \
-count were {round(incorrect_characters_as_pct_of_length,2)}% and \
-{round(efficiency_percentage, 2)}% of the verse's length, respectively.")
+were typed without a mistake. Your incorrect and extra keypress \
+counts were {round(incorrect_characters_as_pct_of_length,2)}% and \
+{round(extra_keystrokes_percentage, 2)}% of the verse's length, respectively.")
 
 
     # Updating df_Bible to store the player's results: (This will allow the
@@ -1855,12 +1864,12 @@ df_results['Incorrect Character % Last 100 Avg'] = df_results[
 df_results['Incorrect Character % Last 1000 Avg'] = df_results[
 'Incorrect Characters as % of Verse Length'].rolling(1000).mean()
 
-df_results['Efficiency % Last 10 Avg'] = df_results[
-'Efficiency %'].rolling(10).mean()
-df_results['Efficiency % Last 100 Avg'] = df_results[
-'Efficiency %'].rolling(100).mean()
-df_results['Efficiency % Last 1000 Avg'] = df_results[
-'Efficiency %'].rolling(1000).mean()
+df_results['Extra Keystrokes % Last 10 Avg'] = df_results[
+'Extra Keystrokes %'].rolling(10).mean()
+df_results['Extra Keystrokes % Last 100 Avg'] = df_results[
+'Extra Keystrokes %'].rolling(100).mean()
+df_results['Extra Keystrokes % Last 1000 Avg'] = df_results[
+'Extra Keystrokes %'].rolling(1000).mean()
 
 
 
@@ -2778,10 +2787,7 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 # %% [markdown]
 # ## Accuracy measures:
 # 
-# Note: I am now using the Efficiency Percentage measure as an indicator of accuracy, as it captures more incorrect/redundant keystrokes than do the other accuracy measures logged by the gameplay code. Lower efficiency percentage values indicate more efficient, accurate tests. The lowest-possible (e.g. best) percentage with a regular keyboard is 100%; this value indicates that the player typed the verse perfectly.
-
-# %%
-
+# Note: I am now using the Extra Keystrokes Percentage measure as an indicator of accuracy, as it captures more incorrect/redundant keystrokes than do the other accuracy measures logged by the gameplay code. Lower extra keystrokes percentage values indicate more efficient, accurate tests. The lowest-possible (e.g. best) percentage with a regular keyboard is 0%; this value indicates that the player typed the verse perfectly.
 
 # %% [markdown]
 # ### Evaluating the relationship between incorrect keypresses as a % of verse length and WPM:
@@ -2792,73 +2798,73 @@ if (len(df_results.query("Mistake_Free_Test == 0")) >= 1) & (
 # .exe version of the program, so I'm excluding the "trendline = 'ols'" 
 # component for now. Hopefully I can find a way to get that code to work
 # in the future.
-# fig_efficiency_wpm_scatter = px.scatter(df_results, 
+# fig_extra_keystrokes_wpm_scatter = px.scatter(df_results, 
 # x = 'Total Keypresses as % of Verse Length', y = 'WPM', trendline = 'ols')
 # # Note that you can hover over the best fit line to see the 
 # regression results.
 
-fig_efficiency_wpm_scatter = px.scatter(df_results, 
-x = 'Efficiency %', y = 'WPM', 
-title = 'Comparison Between Efficiency and WPM')
+fig_extra_keystrokes_wpm_scatter = px.scatter(df_results, 
+x = 'Extra Keystrokes %', y = 'WPM', 
+title = 'Comparison Between Extra Keystrokes and WPM')
 
 
-fig_efficiency_wpm_scatter.write_html(
-'Analyses/efficiency_wpm_scatter.html')
+fig_extra_keystrokes_wpm_scatter.write_html(
+'Analyses/extra_keystrokes_wpm_scatter.html')
 if save_image_copies_of_charts == True:
-    fig_efficiency_wpm_scatter.write_image(
-    'Analyses/efficiency_wpm_scatter.png', 
+    fig_extra_keystrokes_wpm_scatter.write_image(
+    'Analyses/extra_keystrokes_wpm_scatter.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_efficiency_wpm_scatter
+fig_extra_keystrokes_wpm_scatter
 
 # %%
 fig_accuracy_wpm_histogram = px.histogram(df_results, 
-x = 'Efficiency %', y = 'WPM', 
+x = 'Extra Keystrokes %', y = 'WPM', 
 histfunc = 'avg', nbins = 20, text_auto = '.6s',
-title = 'Average WPM for Different Efficiency Bins')
+title = 'Average WPM for Different Extra Keystrokes Bins')
 fig_accuracy_wpm_histogram.update_layout(bargroupgap = 0.1, 
 yaxis_title = 'Average WPM')
 fig_accuracy_wpm_histogram.write_html(
-'Analyses/efficiency_wpm_histogram.html')
+'Analyses/extra_keystrokes_wpm_histogram.html')
 if save_image_copies_of_charts == True:
     fig_accuracy_wpm_histogram.write_image(
-    'Analyses/efficiency_wpm_histogram.png', 
+    'Analyses/extra_keystrokes_wpm_histogram.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
 fig_accuracy_wpm_histogram
 
 
 # %%
-fig_efficiency_count_histogram = px.histogram(df_results, 
-x = 'Efficiency %', nbins = 20, text_auto = True,
-title = 'Efficiency Histogram')
-fig_efficiency_count_histogram.update_layout(
+fig_extra_keystrokes_count_histogram = px.histogram(df_results, 
+x = 'Extra Keystrokes %', nbins = 20, text_auto = True,
+title = 'Extra Keystrokes Histogram')
+fig_extra_keystrokes_count_histogram.update_layout(
 bargroupgap = 0.1, yaxis_title = '# of Tests')
-fig_efficiency_count_histogram.write_html(
-'Analyses/efficiency_pct_histogram.html')
+fig_extra_keystrokes_count_histogram.write_html(
+'Analyses/extra_keystrokes_pct_histogram.html')
 if save_image_copies_of_charts == True:
-    fig_efficiency_count_histogram.write_image(
-    'Analyses/efficiency_pct_histogram.png', 
+    fig_extra_keystrokes_count_histogram.write_image(
+    'Analyses/extra_keystrokes_pct_histogram.png', 
     width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_efficiency_count_histogram
+fig_extra_keystrokes_count_histogram
 
 # %% [markdown]
 # ### Visualizing trends in accuracy over time:
 
 # %%
-fig_efficiency_by_test_number = px.line(
+fig_extra_keystrokes_by_test_number = px.line(
 df_results, x = df_results.index, 
-y = ['Efficiency %',
-'Efficiency % Last 10 Avg',
-'Efficiency % Last 100 Avg',
-'Efficiency % Last 1000 Avg'],
-title = 'Total Keypresses as % of Verse Length (Efficiency %) by Test Number')
-fig_efficiency_by_test_number.update_layout(yaxis_title='Percentage')
-fig_efficiency_by_test_number.write_html(
-'Analyses/efficiency_pct_over_time.html')
+y = ['Extra Keystrokes %',
+'Extra Keystrokes % Last 10 Avg',
+'Extra Keystrokes % Last 100 Avg',
+'Extra Keystrokes % Last 1000 Avg'],
+title = 'Extra Keystrokes as % of Verse Length by Test Number')
+fig_extra_keystrokes_by_test_number.update_layout(yaxis_title='Percentage')
+fig_extra_keystrokes_by_test_number.write_html(
+'Analyses/extra_keystrokes_pct_over_time.html')
 if save_image_copies_of_charts == True:
-     fig_efficiency_by_test_number.write_image(
-     'Analyses/efficiency_pct_over_time.png', 
+     fig_extra_keystrokes_by_test_number.write_image(
+     'Analyses/extra_keystrokes_pct_over_time.png', 
      width = 1920, height = 1080, engine = 'kaleido', scale = 2)
-fig_efficiency_by_test_number
+fig_extra_keystrokes_by_test_number
 
 # %% [markdown]
 # ### Average WPM by day:
@@ -3155,13 +3161,13 @@ if (run_word_analyses == 1) & (len(df_common_word_stats_pivot) >= 1):
 # %%
 def analyze_results_by_setting_component(component, metric):
     '''This function compares players' results for a particular metric (e.g.
-    WPM or Efficiency %) by a particular element of their setting, such as
+    WPM or Extra Keystrokes %) by a particular element of their setting, such as
     their location or keyboard. This code was moved to a function in order to 
     simplify the program.
     
     component: The component to analyze. This must be a column within
     df_results ('Keyboard', 'Location', etc.)
-    metric: The outcome variable to analyze, such as 'WPM' or 'Efficiency %'.
+    metric: The outcome variable to analyze, such as 'WPM' or 'Extra Keystrokes %'.
     It too must be a column within df_results.'''
 
     # Filtering the DataFrame to include only rows with valid results
@@ -3169,7 +3175,7 @@ def analyze_results_by_setting_component(component, metric):
     df_component_metric_results = df_results.query(
     f"`{component}` == `{component}` & `{metric}` == `{metric}`").copy()
     # The backticks were added in so that field names with spaces
-    # (such as 'Efficiency %') could also be made compatible with 
+    # (such as 'Extra Keystrokes %') could also be made compatible with 
     # query(). 
     # NaN won't equal NaN, so this query() statement will filter out
     # results with NaN values for either the component or the metric.
@@ -3209,7 +3215,7 @@ is not yet avialable, so charts that rely on it will not be created.")
 # %%
 for component in ['Location', 'Keyboard', 'Layout', 'Caffeine', 'Custom_1', 'Custom_2', 'Custom_3', 'Autostart']:
     analyze_results_by_setting_component(component, 'WPM')
-    analyze_results_by_setting_component(component, 'Efficiency %')
+    analyze_results_by_setting_component(component, 'Extra Keystrokes %')
 
 # %% [markdown]
 # Note: the following code is a modified version of the create_pivot_for_charts() function found in my [Dash School Dashboard project](https://github.com/kburchfiel/dash_school_dashboard/blob/main/dsd/app_functions_and_variables.py).
@@ -3314,14 +3320,14 @@ setting component, so charts that rely on it will not be created.")
     return fig_results
 
 # %% [markdown]
-# Calling this function for both WPM and Efficiency % metrics for selected comparison groups:
+# Calling this function for both WPM and Extra Keystrokes % metrics for selected comparison groups:
 
 # %%
 for comparison_value_set in [['Location', 'Keyboard'], 
     ['Location', 'Autostart'],
     ['Keyboard', 'Autostart'],
     ['Location', 'Keyboard', 'Autostart']]:
-    for y_value in ['WPM', 'Efficiency %']:
+    for y_value in ['WPM', 'Extra Keystrokes %']:
         analyze_results_by_multiple_setting_components(original_data_source = df_results,
         y_value = y_value, comparison_values = comparison_value_set, pivot_aggfunc = 'mean')
 
