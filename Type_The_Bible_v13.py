@@ -681,9 +681,6 @@ pressing `; maximizing the terminal; and then restarting this test.")
             # This function has been tested on Windows, Mac, and Linux systems.
             verse_response = '' # This string will store the player's 
             # response.
-            no_mistakes = 1 # This flag will get set to 0 if the player makes
-            # a mistake. If it remains at 1 throughout the race, then
-            # a mistake-free race will get logged in results_table.
             incorrect_character_count = 0 # Will store how many incorrect
             # keypresses have been entered, thus allowing accuracy 
             # statistics to be calculated.
@@ -962,8 +959,6 @@ pressing `; maximizing the terminal; and then restarting this test.")
                             verse_response_minus_one)
 
                 else: # In this case, the most recent keystroke was a typo.
-                    no_mistakes = 0 # This flag will remain at 0 for the 
-                    # rest of the race.
                     typed_word_without_mistakes = 0 
                     text_color = '\033[31m' # Sets the verse's text to red to 
                     # designate that an error is present.
@@ -1172,6 +1167,19 @@ pressing `; maximizing the terminal; and then restarting this test.")
 #                     print(f"{keypress_count} keypresses were typed in order \
 # to write a {len(verse)}-character verse, resulting in an \
 # extra_keystrokes percentage of {extra_keystrokes_percentage}.")
+                    # If no extra keystrokes were typed, we'll assume
+                    # that the player typed a mistake-free race.
+                    # (This might actually *not* be the case if
+                    # the player used a stenotype setup.)
+                    # The code previously set no_mistakes to 1
+                    # as long as no characters were typed incorrectly,
+                    # but that setup would allow races with
+                    # backspaces to be counted as mistake-free races
+                    # also.
+                    if extra_keystrokes_percentage == 0:
+                        no_mistakes = 1
+                    else:
+                        no_mistakes = 0
 
 
                     # converting word_stats_list into a DataFrame
